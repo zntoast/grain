@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/prompt-editor.html",
+  "entry": "screens/prompt-editor.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-06T13:58:05.508Z",
+  "updatedAt": "2026-06-06T13:58:05.508Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "提示词管理原型 — 首页",
+  "entry": "prompt-manager-prototype.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "primary": true,
+  "createdAt": "2026-06-06T14:00:37.134Z",
+  "updatedAt": "2026-06-06T14:00:37.185Z",
+  "metadata": {
+    "identifier": "prompt-manager-prototype",
+    "artifactType": "text/html",
+    "inferred": false
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/group.html",
+  "entry": "screens/group.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-06T13:57:29.057Z",
+  "updatedAt": "2026-06-06T13:57:29.057Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

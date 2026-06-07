@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "kind": "html",
+  "title": "screens/workspace.html",
+  "entry": "screens/workspace.html",
+  "renderer": "html",
+  "status": "complete",
+  "exports": [
+    "html",
+    "pdf",
+    "zip"
+  ],
+  "createdAt": "2026-06-06T13:56:23.198Z",
+  "updatedAt": "2026-06-06T13:56:23.198Z",
+  "metadata": {
+    "inferred": true,
+    "reconciled": true
+  }
+}

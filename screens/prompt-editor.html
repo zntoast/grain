@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>提示词编辑器</title>
+<style>
+:root {
+  --bg: oklch(99% 0.002 240);
+  --surface: oklch(100% 0 0);
+  --fg: oklch(18% 0.012 250);
+  --muted: oklch(54% 0.012 250);
+  --border: oklch(92% 0.005 250);
+  --accent: oklch(58% 0.18 255);
+  --accent-soft: oklch(58% 0.18 255 / 0.08);
+  --accent-mid: oklch(58% 0.18 255 / 0.5);
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font: 14px/1.5 var(--font);
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+}
+.sidebar {
+  width: 260px; flex-shrink: 0; background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0;
+}
+.sidebar-header { padding: 20px 16px 12px; border-bottom: 1px solid var(--border); }
+.sidebar-header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.01em; display: flex; align-items: center; gap: 8px; }
+.sidebar-nav { flex: 1; overflow-y: auto; padding: 4px 0; }
+.nav-section-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding: 16px 16px 6px; }
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 16px; margin: 1px 8px; border-radius: var(--radius-sm); cursor: pointer; font-size: 13px; color: var(--fg); text-decoration: none; transition: background 0.12s; }
+.nav-item:hover { background: var(--accent-soft); }
+.nav-item.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nav-item .count { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nav-item svg { flex-shrink: 0; opacity: 0.6; }
+.nav-item.active svg { opacity: 1; }
+
+/* Tree sidebar */
+.nav-folder {}
+.nav-folder-header {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 16px 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em;
+  color: var(--muted); cursor: pointer; user-select: none; text-transform: uppercase;
+}
+.nav-folder-header:hover { color: var(--fg); }
+.nav-folder-header .arr {
+  font-size: 8px; transition: transform 0.15s; flex-shrink: 0; width: 12px; text-align: center;
+  font-family: monospace;
+}
+.nav-folder.open .nav-folder-header .arr { transform: rotate(90deg); }
+.nav-folder-header .ficon { flex-shrink: 0; opacity: 0.5; }
+.nav-folder.open .nav-folder-header .ficon { opacity: 0.8; }
+.nav-folder-children { display: none; }
+.nav-folder.open > .nav-folder-children { display: block; }
+.nav-leaf {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 16px 5px 34px; font-size: 13px; color: var(--fg);
+  text-decoration: none; transition: background 0.12s;
+  border-radius: 6px; margin: 0 6px;
+}
+.nav-leaf:hover { background: var(--accent-soft); }
+.nav-leaf.active { background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.nav-leaf .count { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.nav-leaf svg { flex-shrink: 0; opacity: 0.5; width: 14px; height: 14px; }
+.nav-leaf.active svg { opacity: 1; }
+
+/* Folder inline rename */
+.folder-leaf .fname {
+  flex: 1; cursor: text; padding: 1px 4px; border-radius: 4px;
+  transition: background 0.12s; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.folder-leaf .fname:hover { background: var(--accent-soft); }
+.folder-leaf .fname-input {
+  flex: 1; font: inherit; font-size: 12px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 4px;
+  padding: 2px 6px; outline: none; color: var(--fg); min-width: 0; height: 22px;
+}
+.folder-leaf .folder-actions .rename-btn { opacity: 0.3; }
+.folder-leaf:hover .folder-actions .rename-btn { opacity: 0.7; }
+.folder-leaf .folder-actions .rename-btn:hover { opacity: 1; color: var(--accent); }
+.inline-create { padding: 4px 16px !important; }
+.inline-create input {
+  width: 100%; font: inherit; font-size: 12px;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 4px;
+  padding: 4px 8px; outline: none; color: var(--fg);
+}
+
+/* Sidebar popout */
+.sidebar { transition: transform 0.2s ease; z-index: 1001; }
+.sidebar.collapsed { transform: translateX(-100%); position: fixed; left: 0; top: 0; height: 100vh; }
+.sidebar.collapsed.no-trans { transition: none; }
+.sidebar-toggle {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer;
+  display: grid; place-items: center; flex-shrink: 0; margin-left: auto;
+  transition: background 0.12s;
+}
+.sidebar-toggle:hover { background: var(--accent-soft); color: var(--accent); }
+.sidebar-backdrop {
+  display: none; position: fixed; inset: 0; background: oklch(0% 0 0 / 0.35);
+  z-index: 1000;
+}
+.sidebar-backdrop.open { display: block; }
+.sidebar-peek {
+  display: none; position: fixed; left: 0; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 60px; border-radius: 0 8px 8px 0;
+  background: var(--surface); border: 1px solid var(--border); border-left: none;
+  color: var(--muted); cursor: pointer; z-index: 999;
+  place-items: center; font-size: 14px; transition: color 0.12s;
+}
+.sidebar-peek:hover { color: var(--accent); }
+.sidebar.collapsed ~ .sidebar-peek { display: grid; }
+body.sidebar-locked .sidebar { position: fixed; left: 0; top: 0; height: 100vh; transform: translateX(0); }
+body.sidebar-locked .sidebar-backdrop { display: block; }
+
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.topbar { height: 56px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; padding: 0 24px; background: var(--surface); flex-shrink: 0; }
+.topbar h2 { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.topbar-actions { margin-left: auto; display: flex; gap: 6px; }
+.btn-primary { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 18px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font: 500 13px var(--font); cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 18px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface); color: var(--fg); font: 500 13px var(--font); cursor: pointer; transition: background 0.12s; }
+.btn-secondary:hover { background: var(--accent-soft); }
+.btn-danger { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 18px; border-radius: 8px; border: 1px solid oklch(58% 0.2 30 / 0.3); background: transparent; color: oklch(58% 0.2 30); font: 500 13px var(--font); cursor: pointer; transition: background 0.12s; }
+.btn-danger:hover { background: oklch(58% 0.2 30 / 0.08); }
+.content { flex: 1; overflow-y: auto; padding: 24px 32px; max-width: 720px; }
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); margin-bottom: 16px; flex-wrap: wrap; }
+.breadcrumb a { color: var(--muted); text-decoration: none; }
+.breadcrumb a:hover { color: var(--accent); }
+.form-section { margin-bottom: 28px; }
+.form-section-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 10px; }
+.form-label { font-size: 13px; font-weight: 500; margin-bottom: 6px; display: block; }
+.form-input { width: 100%; height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); font: 14px var(--font); color: var(--fg); background: var(--surface); outline: none; transition: border-color 0.15s; }
+.form-input:focus { border-color: var(--accent); }
+.form-input-mono { font-family: var(--font-mono); letter-spacing: -0.01em; }
+.form-hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* Group pills */
+.group-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.group-pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: oklch(58% 0.16 145 / 0.08); color: oklch(58% 0.16 145); display: inline-flex; align-items: center; gap: 4px; }
+.group-pill .remove { cursor: pointer; opacity: 0.5; font-size: 14px; line-height: 1; }
+.group-pill .remove:hover { opacity: 1; }
+.group-pill.add { background: transparent; border: 1px dashed var(--border); color: var(--muted); cursor: pointer; }
+.group-pill.add:hover { border-color: var(--accent-mid); color: var(--accent); }
+
+/* Derived workspace */
+.ws-derive { display: flex; flex-wrap: wrap; gap: 6px; background: var(--bg); border-radius: var(--radius-sm); padding: 12px 14px; }
+.ws-badge { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; gap: 4px; }
+.ws-badge .via { font-weight: 400; opacity: 0.6; font-size: 11px; }
+
+/* Tags */
+.tag-bar { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.pill { font-size: 12px; padding: 3px 10px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); display: inline-flex; align-items: center; gap: 4px; }
+.pill-remove { cursor: pointer; opacity: 0.5; font-size: 13px; line-height: 1; }
+.pill-remove:hover { opacity: 1; }
+.pill-add { background: transparent; border: 1px dashed var(--border); color: var(--muted); cursor: pointer; }
+.pill-add:hover { border-color: var(--accent-mid); color: var(--accent); }
+
+/* Toast */
+.copy-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 20px; border-radius: 8px; font: 13px var(--font); opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+.copy-toast.show { opacity: 1; }
+
+/* Modal */
+.modal-overlay { display: none; position: fixed; inset: 0; background: oklch(0% 0 0 / 0.4); z-index: 2000; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border-radius: var(--radius); width: 480px; max-height: 80vh; overflow: hidden; box-shadow: 0 20px 60px oklch(0% 0 0 / 0.2); }
+.modal-header { padding: 20px 24px 0; display: flex; justify-content: space-between; align-items: center; }
+.modal-header h3 { font-size: 16px; font-weight: 600; }
+.modal-close { width: 32px; height: 32px; border: none; background: transparent; color: var(--muted); cursor: pointer; border-radius: 8px; display: grid; place-items: center; font-size: 18px; }
+.modal-close:hover { background: var(--accent-soft); }
+.modal-body { padding: 20px 24px; overflow-y: auto; max-height: calc(80vh - 80px); }
+.modal-group-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 8px; cursor: pointer; transition: background 0.12s; }
+.modal-group-item:hover { background: var(--accent-soft); }
+.modal-group-item .info { flex: 1; }
+.modal-group-item .info h4 { font-size: 13px; font-weight: 500; }
+.modal-group-item .info p { font-size: 11px; color: var(--muted); }
+.modal-group-item .check { width: 20px; height: 20px; border-radius: 4px; border: 2px solid var(--border); display: grid; place-items: center; flex-shrink: 0; }
+.modal-group-item.selected .check { background: var(--accent); border-color: var(--accent); }
+.modal-group-item.selected .check::after { content: '✓'; color: #fff; font-size: 12px; font-weight: 700; }
+.modal-footer { padding: 12px 24px 20px; display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Folder management */
+.nav-folder-header .folder-actions {
+  margin-left: auto; display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s;
+}
+.nav-folder-header:hover .folder-actions { opacity: 1; }
+.folder-action-btn {
+  width: 22px; height: 22px; border-radius: 4px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; display: grid; place-items: center;
+  font-size: 14px; line-height: 1; transition: background 0.12s;
+}
+.folder-action-btn:hover { background: var(--accent-soft); color: var(--accent); }
+.folder-action-btn.danger:hover { color: oklch(58% 0.2 30); background: oklch(58% 0.2 30 / 0.08); }
+.folder-leaf {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 16px 4px 34px; margin: 1px 6px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer;
+  user-select: none; transition: background 0.12s;
+}
+.folder-leaf:hover { background: var(--accent-soft); color: var(--fg); }
+.folder-leaf .arr { font-size: 8px; transition: transform 0.15s; font-family: monospace; width: 10px; text-align: center; flex-shrink: 0; }
+.folder-leaf.open .arr { transform: rotate(90deg); }
+.folder-leaf .fname { flex: 1; }
+.folder-leaf .folder-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 0.12s; }
+.folder-leaf:hover .folder-actions { opacity: 1; }
+.folder-children { display: none; }
+.folder-leaf.open + .folder-children { display: block; }
+
+.modal-box {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px; width: 420px; max-width: 90vw; box-shadow: 0 20px 60px oklch(0% 0 0 / 0.2);
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+}
+.modal-box h3 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.modal-box p { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.modal-field { margin-bottom: 16px; }
+.modal-field label { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 4px; }
+.modal-field input, .modal-field select {
+  width: 100%; height: 40px; padding: 0 12px; border-radius: 8px;
+  border: 1px solid var(--border); font: 14px var(--font); color: var(--fg);
+  background: var(--surface); outline: none;
+}
+.modal-field input:focus, .modal-field select:focus { border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      提示词管理
+    </h1>
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="收起侧边栏">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </button>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-folder open">
+      <div class="nav-folder-header" onclick="toggleFolder(this)">
+        <span class="arr">▶</span>
+        <svg class="ficon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        工作空间
+      </div>
+      <div class="nav-folder-children">
+        <a class="nav-leaf" href="../screens/workspace.html">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          我的提示词库
+        </a>
+      </div>
+    </div>
+    <div class="nav-folder open" id="groupsFolder">
+      <div class="nav-folder-header" onclick="toggleFolder(this)">
+        <span class="arr">▶</span>
+        <svg class="ficon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        词组
+        <span class="folder-actions">
+          <button class="folder-action-btn" onclick="event.stopPropagation();openCreateGroupModal()" title="新建词组">+</button>
+          <button class="folder-action-btn" onclick="event.stopPropagation();startInlineCreateFolder()" title="新建目录">📁</button>
+        </span>
+      </div>
+      <div class="nav-folder-children" id="groupSidebar">
+        <!-- JS-rendered: groups organized by folders -->
+      </div>
+    </div>
+    <div class="nav-folder open">
+      <div class="nav-folder-header" onclick="toggleFolder(this)">
+        <span class="arr">▶</span>
+        <svg class="ficon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        提示词
+      </div>
+      <div class="nav-folder-children">
+        <a class="nav-leaf" href="../screens/all-tags.html">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          全部提示词
+        </a>
+        <a class="nav-leaf" href="../index.html">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          返回主页
+        </a>
+      </div>
+    </div>
+  </nav>
+</aside>
+
+<div class="modal-overlay" id="createGroupModal" onclick="if(event.target===this)closeModal('createGroupModal')">
+  <div class="modal-box">
+    <h3>新建词组</h3>
+    <p>创建一个新的提示词词组</p>
+    <div class="modal-field">
+      <label>词组名称</label>
+      <input id="newGroupName" placeholder="例如：风景摄影" onkeydown="if(event.key==='Enter')confirmCreateGroup()" />
+    </div>
+    <div class="modal-field">
+      <label>所属目录（可选）</label>
+      <select id="newGroupFolder"><option value="">（无目录 — 放在根目录）</option></select>
+    </div>
+    <div class="modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:20px">
+      <button class="btn-secondary" onclick="closeModal('createGroupModal')">取消</button>
+      <button class="btn-primary" onclick="confirmCreateGroup()">创建</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeSidebarPopout()"></div>
+<button class="sidebar-peek" id="sidebarPeek" onclick="openSidebarPopout()" title="展开侧边栏">›</button>
+
+<div class="main">
+  <div class="topbar">
+    <h2>编辑提示词</h2>
+    <div class="topbar-actions">
+      <button class="btn-secondary" onclick="copyWord()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        复制单词
+      </button>
+      <button class="btn-primary" onclick="saveTag()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        保存
+      </button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="breadcrumb">
+      <a href="../screens/workspace.html">工作空间</a>
+      <span>/</span>
+      <a href="../screens/group.html?id=people">人物肖像</a>
+      <span>/</span>
+      <a href="../index.html" style="color:var(--accent);text-decoration:none">返回主页</a>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">AI 绘画单词</div>
+      <div style="background:var(--bg);border-radius:var(--radius);padding:20px;margin-bottom:16px">
+        <label class="form-label">英文单词（输入给 AI 使用）</label>
+        <input class="form-input form-input-mono" type="text" id="tagEn" value="cinematic_portrait" style="font-size:18px;font-weight:600;height:52px" />
+        <div class="form-hint">这是实际用于 AI 生成的标记词。一个 Tag 就是一个单词（或下划线连接的短语）。</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <label class="form-label">中文释义</label>
+          <input class="form-input" type="text" id="tagZh" value="电影感人像特写" />
+        </div>
+        <div>
+          <label class="form-label">分类</label>
+          <select class="form-input" id="tagCategory">
+            <option value="角色">角色</option>
+            <option value="画风">画风</option>
+            <option value="构图">构图</option>
+            <option value="光影">光影</option>
+            <option value="画质">画质</option>
+            <option value="场景">场景</option>
+            <option value="色调">色调</option>
+            <option value="表情">表情</option>
+            <option value="姿势">姿势</option>
+            <option value="特效">特效</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">
+        所属词组
+        <span style="text-transform:none;font-weight:400;letter-spacing:0;color:var(--muted)">（通过 group_tags 关联）</span>
+      </div>
+      <div class="group-bar" id="groupBar"></div>
+      <div class="form-hint" id="groupHint"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-section-title">提示词 ID</div>
+      <input class="form-input" type="text" id="tagIdDisplay" disabled style="color:var(--muted);font-family:var(--font-mono);font-size:13px;max-width:300px" />
+      <div class="form-hint">系统自动分配，不可修改。</div>
+    </div>
+
+    <div style="display:flex;gap:8px;padding-top:8px;border-top:1px solid var(--border);margin-top:8px">
+      <button class="btn-primary" style="margin-left:auto" onclick="saveTag()">保存更改</button>
+      <button class="btn-danger" onclick="deleteTag()">删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add to Group Modal -->
+<div class="modal-overlay" id="groupModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>管理组关联</h3>
+      <button class="modal-close" onclick="closeGroupModal()">×</button>
+    </div>
+    <div class="modal-body" id="groupModalBody">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeGroupModal()">取消</button>
+      <button class="btn-primary" onclick="saveGroupModal()">确认</button>
+    </div>
+  </div>
+</div>
+
+<div class="copy-toast" id="toast">已复制到剪贴板</div>
+
+<script>
+var LS_KEY = 'pt_all_tags_data';
+
+var ALL_GROUPS = [
+  { id:'people',        name:'人物肖像',   color:'255' },
+  { id:'product',       name:'产品摄影',   color:'170' },
+  { id:'illustration',  name:'插画风格',   color:'145' },
+  { id:'architecture',  name:'建筑空间',   color:'45' },
+  { id:'concept',       name:'概念艺术',   color:'28' },
+  { id:'anime',         name:'动漫风格',   color:'300' },
+  { id:'food',          name:'美食摄影',   color:'200' }
+];
+
+var ALL_TAGS, GROUP_TAGS;
+
+/* ===== Folder management ===== */
+var GROUP_FOLDERS = [];
+var GROUP_FOLDER_MAP = {};
+var folderIdCounter = 10;
+
+function loadFolders() {
+  try {
+    var d = JSON.parse(localStorage.getItem(LS_KEY));
+    if (d && d.folders) GROUP_FOLDERS = d.folders;
+    if (d && d.folderMap) GROUP_FOLDER_MAP = d.folderMap;
+    if (d && d.folderCounter) folderIdCounter = d.folderCounter;
+    if (d && d.groups) { ALL_GROUPS = d.groups; }
+    if (d && d.groupFolderMap) { GROUP_FOLDER_MAP = d.groupFolderMap; }
+  } catch(_) {}
+}
+
+function renderGroupSidebar() {
+  var container = document.getElementById('groupSidebar');
+  if (!container) return;
+  var html = '';
+  GROUP_FOLDERS.forEach(function(f) {
+    html += '<div class="folder-leaf open">';
+    html += '<span class="arr" onclick="toggleFolderChild(this.parentNode)">▶</span>';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+    html += '<span class="fname" id="fname_' + f.id + '" onclick="event.stopPropagation();startRenameFolder(\'' + f.id + '\')" title="点击编辑名称">' + escapeHtml(f.name) + '</span>';
+    html += '<span class="folder-actions">';
+    html += '<button class="folder-action-btn" onclick="event.stopPropagation();openCreateGroupModal(\'' + f.id + '\')" title="在此目录下新建词组">+</button>';
+    html += '<button class="folder-action-btn rename-btn" onclick="event.stopPropagation();startRenameFolder(\'' + f.id + '\')" title="重命名">✏️</button>';
+    html += '<button class="folder-action-btn danger" onclick="event.stopPropagation();deleteFolder(\'' + f.id + '\')" title="删除目录">×</button>';
+    html += '</span>';
+    html += '</div>';
+    html += '<div class="folder-children">';
+    ALL_GROUPS.forEach(function(g) {
+      if (GROUP_FOLDER_MAP[g.id] === f.id) {
+        var count = (GROUP_TAGS[g.id] || []).length;
+        html += '<a class="nav-leaf" href="group.html?id=' + g.id + '">';
+        html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        html += escapeHtml(g.name) + ' <span class="count">' + count + '</span></a>';
+      }
+    });
+    html += '</div>';
+  });
+  ALL_GROUPS.forEach(function(g) {
+    if (!GROUP_FOLDER_MAP[g.id]) {
+      var count = (GROUP_TAGS[g.id] || []).length;
+      html += '<a class="nav-leaf" href="group.html?id=' + g.id + '">';
+      html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      html += escapeHtml(g.name) + ' <span class="count">' + count + '</span></a>';
+    }
+  });
+  if (_inlineCreatingFolder) {
+    html += '<div class="nav-leaf inline-create">';
+    html += '<input id="inlineFolderInput" placeholder="文件夹名称…" onkeydown="if(event.key===\'Enter\')confirmInlineCreateFolder();else if(event.key===\'Escape\')cancelInlineCreateFolder()" onblur="setTimeout(confirmInlineCreateFolder,150)" />';
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toggleFolderChild(el) { el.classList.toggle('open'); }
+
+/* Folder inline rename */
+var _renamingFolder = null;
+var _inlineCreatingFolder = false;
+
+function startRenameFolder(folderId) {
+  var span = document.getElementById('fname_' + folderId);
+  if (!span) return;
+  if (_renamingFolder) cancelRenameFolder();
+  _renamingFolder = folderId;
+  var oldName = span.textContent;
+  var input = document.createElement('input');
+  input.className = 'fname-input';
+  input.type = 'text';
+  input.value = oldName;
+  input.id = 'fname_input_' + folderId;
+  input.onkeydown = function(e) {
+    e.stopPropagation();
+    if (e.key === 'Enter') { saveRenameFolder(folderId); }
+    else if (e.key === 'Escape') { cancelRenameFolder(); }
+  };
+  input.onblur = function() { saveRenameFolder(folderId); };
+  input.dataset.oldName = oldName;
+  span.innerHTML = '';
+  span.appendChild(input);
+  input.focus();
+  input.select();
+}
+function saveRenameFolder(folderId) {
+  var input = document.getElementById('fname_input_' + folderId);
+  if (!input || _renamingFolder !== folderId) return;
+  var newName = input.value.trim();
+  var oldName = input.dataset.oldName || '';
+  _renamingFolder = null;
+  if (newName && newName !== oldName) {
+    GROUP_FOLDERS.forEach(function(f) {
+      if (f.id === folderId) f.name = newName;
+    });
+    saveFolders();
+  }
+  renderGroupSidebar();
+}
+function cancelRenameFolder() {
+  if (_renamingFolder) {
+    _renamingFolder = null;
+    renderGroupSidebar();
+  }
+}
+
+function openCreateGroupModal(preSelectedFolder) {
+  var sel = document.getElementById('newGroupFolder');
+  sel.innerHTML = '<option value="">（无目录 — 放在根目录）</option>';
+  GROUP_FOLDERS.forEach(function(f) {
+    sel.innerHTML += '<option value="' + f.id + '">' + escapeHtml(f.name) + '</option>';
+  });
+  if (preSelectedFolder) sel.value = preSelectedFolder;
+  document.getElementById('newGroupName').value = '';
+  document.getElementById('newGroupName').focus();
+  document.getElementById('createGroupModal').classList.add('open');
+}
+function confirmCreateGroup() {
+  var name = document.getElementById('newGroupName').value.trim();
+  if (!name) return;
+  var folderId = document.getElementById('newGroupFolder').value || null;
+  var id = name.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '_').replace(/^_|_$/g, '') || 'group_' + Date.now();
+  var base = id, n = 0;
+  while (ALL_GROUPS.some(function(g) { return g.id === id; })) { n++; id = base + '_' + n; }
+  var hue = String(Math.floor(Math.random() * 360));
+  ALL_GROUPS.push({ id: id, name: name, color: hue, tags: '0', desc: '' });
+  if (folderId) GROUP_FOLDER_MAP[id] = folderId;
+  if (!GROUP_TAGS[id]) GROUP_TAGS[id] = [];
+  saveToStorage();
+  saveFolders();
+  renderGroupSidebar();
+  window.location.href = '../screens/group.html?id=' + id;
+}
+function startInlineCreateFolder() {
+  if (_inlineCreatingFolder) return;
+  _inlineCreatingFolder = true;
+  renderGroupSidebar();
+  setTimeout(function() {
+    var inp = document.getElementById('inlineFolderInput');
+    if (inp) { inp.focus(); inp.select(); }
+  }, 50);
+}
+function confirmInlineCreateFolder() {
+  var input = document.getElementById('inlineFolderInput');
+  if (!input) return;
+  var name = input.value.trim();
+  _inlineCreatingFolder = false;
+  if (name) {
+    var id = 'f' + (folderIdCounter++);
+    GROUP_FOLDERS.push({ id: id, name: name });
+    saveFolders();
+  }
+  renderGroupSidebar();
+}
+function cancelInlineCreateFolder() {
+  _inlineCreatingFolder = false;
+  renderGroupSidebar();
+}
+function deleteFolder(folderId) {
+  if (!confirm('确认删除目录 "' + (GROUP_FOLDERS.find(function(f){return f.id===folderId})||{}).name + '"？目录下的词组将移至根目录。')) return;
+  GROUP_FOLDERS = GROUP_FOLDERS.filter(function(f) { return f.id !== folderId; });
+  for (var gid in GROUP_FOLDER_MAP) {
+    if (GROUP_FOLDER_MAP[gid] === folderId) delete GROUP_FOLDER_MAP[gid];
+  }
+  saveFolders();
+  renderGroupSidebar();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function loadData() {
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LS_KEY)); } catch (_) {}
+  if (saved && saved.tags && saved.groupTags) {
+    ALL_TAGS = saved.tags;
+    GROUP_TAGS = saved.groupTags;
+    if (saved.groups) { ALL_GROUPS = saved.groups; }
+    if (saved.groupFolderMap) { GROUP_FOLDER_MAP = saved.groupFolderMap; }
+  } else {
+    ALL_TAGS = [];
+    GROUP_TAGS = {};
+  }
+}
+
+function getPromptId() {
+  var m = location.search.match(/[?&]prompt=([^&]+)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function loadTagData() {
+  var promptId = getPromptId();
+  if (!promptId) return;
+  var tag = ALL_TAGS.find(function(t) { return t.id === promptId; });
+  if (!tag) return;
+  document.getElementById('tagIdDisplay').value = tag.id;
+  document.getElementById('tagEn').value = tag.en || '';
+  document.getElementById('tagZh').value = tag.zh || '';
+  var catSelect = document.getElementById('tagCategory');
+  if (tag.category) {
+    for (var i = 0; i < catSelect.options.length; i++) {
+      if (catSelect.options[i].value === tag.category) {
+        catSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
+}
+
+function renderGroups() {
+  var promptId = getPromptId();
+  if (!promptId) return;
+  var bar = document.getElementById('groupBar');
+  var hint = document.getElementById('groupHint');
+  var linked = [];
+  ALL_GROUPS.forEach(function(g) {
+    if (GROUP_TAGS[g.id] && GROUP_TAGS[g.id].indexOf(promptId) !== -1) {
+      linked.push(g);
+    }
+  });
+  var html = '';
+  linked.forEach(function(g) {
+    html += '<span class="group-pill" data-gid="' + g.id + '">';
+    html += g.name;
+    html += ' <span class="remove" onclick="removeFromGroup(\'' + g.id + '\')">×</span>';
+    html += '</span>';
+  });
+  html += '<span class="group-pill add" onclick="openGroupModal()">+ 加入组</span>';
+  bar.innerHTML = html;
+  hint.innerHTML = '此提示词当前在 <strong>' + linked.length + '</strong> 个词组中。移出词组仅删除 group_tags 关联，不影响提示词本身。';
+}
+
+function removeFromGroup(gid) {
+  var promptId = getPromptId();
+  if (!promptId) return;
+  if (!confirm('确认移出 "' + (ALL_GROUPS.find(function(g) { return g.id === gid; }) || {}).name + '"？仅删除 group_tags 关联。')) return;
+  var idx = (GROUP_TAGS[gid] || []).indexOf(promptId);
+  if (idx !== -1) GROUP_TAGS[gid].splice(idx, 1);
+  saveToStorage();
+  renderGroups();
+}
+
+function saveToStorage() {
+  var existing = null;
+  try { existing = JSON.parse(localStorage.getItem(LS_KEY)) || {}; } catch (_) { existing = {}; }
+  existing.tags = ALL_TAGS;
+  existing.groupTags = GROUP_TAGS;
+  existing.groups = ALL_GROUPS;
+  existing.groupFolderMap = GROUP_FOLDER_MAP;
+  if (!existing.counter) existing.counter = 100;
+  try { localStorage.setItem(LS_KEY, JSON.stringify(existing)); } catch (_) {}
+}
+function saveFolders() {
+  try {
+    var d = JSON.parse(localStorage.getItem(LS_KEY)) || {};
+    d.folders = GROUP_FOLDERS;
+    d.folderMap = GROUP_FOLDER_MAP;
+    d.folderCounter = folderIdCounter;
+    d.groups = ALL_GROUPS;
+    d.groupFolderMap = GROUP_FOLDER_MAP;
+    localStorage.setItem(LS_KEY, JSON.stringify(d));
+  } catch(_) {}
+}
+
+function saveTag() {
+  var en = document.getElementById('tagEn').value.trim();
+  var zh = document.getElementById('tagZh').value.trim();
+  var category = document.getElementById('tagCategory').value;
+  if (!en) { alert('请输入英文单词'); return; }
+  if (!zh) { alert('请输入中文释义'); return; }
+  var promptId = getPromptId();
+  var tag = ALL_TAGS.find(function(t) { return t.id === promptId; });
+  if (tag) {
+    tag.en = en;
+    tag.zh = zh;
+    tag.category = category;
+    saveToStorage();
+  }
+  alert('提示词已保存：' + en + '（' + zh + '）· ' + category);
+}
+
+function copyWord() {
+  var input = document.getElementById('tagEn');
+  if (!input) return;
+  var text = input.value.trim();
+  if (!text) { alert('暂无内容可复制'); return; }
+  navigator.clipboard.writeText(text).then(function() {
+    var t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2000);
+  }).catch(function() {
+    input.select();
+    document.execCommand('copy');
+  });
+}
+
+function openGroupModal() {
+  var promptId = getPromptId();
+  var body = document.getElementById('groupModalBody');
+  var html = '<p style="font-size:12px;color:var(--muted);margin-bottom:12px">勾选关联的组。取消勾选则解除 group_tags 关联。</p>';
+  ALL_GROUPS.forEach(function(g) {
+    var inGroup = GROUP_TAGS[g.id] && GROUP_TAGS[g.id].indexOf(promptId) !== -1;
+    var cls = 'modal-group-item' + (inGroup ? ' selected' : '');
+    var tagCount = (GROUP_TAGS[g.id] || []).length;
+    html += '<div class="' + cls + '" data-gid="' + g.id + '" onclick="this.classList.toggle(\'selected\')">';
+    html += '  <div class="check"></div>';
+    html += '  <div class="info"><h4>' + g.name + '</h4><p>' + tagCount + ' 个提示词' + (inGroup ? ' · 已加入' : '') + '</p></div>';
+    html += '</div>';
+  });
+  body.innerHTML = html;
+  document.getElementById('groupModal').classList.add('open');
+}
+
+function closeGroupModal() { document.getElementById('groupModal').classList.remove('open'); }
+
+function saveGroupModal() {
+  var promptId = getPromptId();
+  if (!promptId) return;
+  var selected = document.querySelectorAll('#groupModalBody .modal-group-item.selected');
+  var changed = false;
+  var newSet = {};
+  selected.forEach(function(el) {
+    newSet[el.dataset.gid] = true;
+  });
+  ALL_GROUPS.forEach(function(g) {
+    var wasIn = GROUP_TAGS[g.id] && GROUP_TAGS[g.id].indexOf(promptId) !== -1;
+    var nowIn = !!newSet[g.id];
+    if (wasIn && !nowIn) {
+      var idx = GROUP_TAGS[g.id].indexOf(promptId);
+      if (idx !== -1) GROUP_TAGS[g.id].splice(idx, 1);
+      changed = true;
+    } else if (!wasIn && nowIn) {
+      if (!GROUP_TAGS[g.id]) GROUP_TAGS[g.id] = [];
+      GROUP_TAGS[g.id].push(promptId);
+      changed = true;
+    }
+  });
+  if (changed) {
+    saveToStorage();
+    renderGroups();
+  }
+  closeGroupModal();
+}
+
+function deleteTag() {
+  var promptId = getPromptId();
+  if (!promptId) return;
+  if (!confirm('确定删除此提示词？提示词是独立实体，删除后所有 group_tags 关联也会被清理。')) return;
+  var idx = ALL_TAGS.findIndex(function(t) { return t.id === promptId; });
+  if (idx !== -1) ALL_TAGS.splice(idx, 1);
+  for (var g in GROUP_TAGS) {
+    var gi = GROUP_TAGS[g].indexOf(promptId);
+    if (gi !== -1) GROUP_TAGS[g].splice(gi, 1);
+  }
+  saveToStorage();
+  alert('已删除。');  
+  location.href = 'all-tags.html';
+}
+
+function toggleFolder(el) { el.parentElement.classList.toggle('open'); }
+function toggleSidebar() {
+  var s = document.querySelector('.sidebar');
+  if (s.classList.contains('collapsed')) {
+    openSidebarPopout();
+  } else {
+    closeSidebarPopout();
+  }
+}
+function openSidebarPopout() {
+  var s = document.querySelector('.sidebar');
+  s.classList.remove('collapsed');
+  document.body.classList.add('sidebar-locked');
+}
+function closeSidebarPopout() {
+  var s = document.querySelector('.sidebar');
+  s.classList.add('collapsed');
+  s.classList.add('no-trans');
+  document.body.classList.remove('sidebar-locked');
+  try { localStorage.setItem('pm_sidebar_collapsed', '1'); } catch(e) {}
+  setTimeout(function() { s.classList.remove('no-trans'); }, 50);
+}
+
+loadData();
+loadFolders();
+renderGroupSidebar();
+loadTagData();
+renderGroups();
+try {
+  if (localStorage.getItem('pm_sidebar_collapsed') === '1') {
+    document.querySelector('.sidebar').classList.add('collapsed');
+  }
+} catch(e) {}
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeGroupModal(); closeSidebarPopout(); }
+});
+</script>
+</body>
+</html>

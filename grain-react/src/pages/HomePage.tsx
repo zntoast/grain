@@ -9,7 +9,7 @@ export const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
-      <div className="bg-white border-b border-gray-200 py-12 px-8 text-center">
+      <div className="bg-white border-b border-gray-200 py-16 px-8 text-center">
         <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 text-accent mb-4">
           <LayoutDashboard size={24} />
         </div>
@@ -29,27 +29,27 @@ export const HomePage: React.FC = () => {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Concept Cards */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center">
-            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent/10 text-accent mb-3">
-              <LayoutDashboard size={18} />
+          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-workspace">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-workspace mb-3">
+              <LayoutDashboard size={20} />
             </div>
             <h3 className="text-sm font-semibold text-gray-900 mb-1">工作空间</h3>
             <p className="text-xs text-gray-500">
               独立实体，通过中间表 <code className="text-[10px] font-mono">workspace_groups</code> 关联到组
             </p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center">
-            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent/10 text-accent mb-3">
-              <FolderOpen size={18} />
+          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-group">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-group mb-3">
+              <FolderOpen size={20} />
             </div>
             <h3 className="text-sm font-semibold text-gray-900 mb-1">词组</h3>
             <p className="text-xs text-gray-500">
               独立实体，可关联到多个工作空间，通过 <code className="text-[10px] font-mono">group_tags</code> 关联提示词
             </p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center">
-            <div className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-accent/10 text-accent mb-3">
-              <Tag size={18} />
+          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-tag">
+            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-tag mb-3">
+              <Tag size={20} />
             </div>
             <h3 className="text-sm font-semibold text-gray-900 mb-1">Tag（提示词）</h3>
             <p className="text-xs text-gray-500">
@@ -105,7 +105,7 @@ export const HomePage: React.FC = () => {
         <div className="grid grid-cols-3 gap-4 mb-8">
           <Link
             to={`/workspace/${workspaces[0]?.id || 'ws_main'}`}
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md hover:border-accent/50 transition-all group"
+            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-workspace group"
           >
             <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
               <LayoutDashboard size={48} className="text-gray-300" />
@@ -123,7 +123,7 @@ export const HomePage: React.FC = () => {
 
           <Link
             to={`/group/${groups[0]?.id || 'people'}`}
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md hover:border-accent/50 transition-all group"
+            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-group group"
           >
             <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
               <FolderOpen size={48} className="text-gray-300" />
@@ -141,7 +141,7 @@ export const HomePage: React.FC = () => {
 
           <Link
             to="/tags"
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md hover:border-accent/50 transition-all group"
+            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-tag group"
           >
             <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
               <Tag size={48} className="text-gray-300" />
@@ -159,11 +159,11 @@ export const HomePage: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="bg-accent/10 rounded-xl p-5">
+        <div className="bg-gradient-to-r from-accent/5 to-purple-50 rounded-xl p-5 border border-accent/10">
           <p className="text-sm text-gray-700">
             <strong>设计说明</strong> · 三个实体完全解耦，通过中间表{' '}
-            <code className="text-xs font-mono">workspace_groups</code> 和{' '}
-            <code className="text-xs font-mono">group_tags</code> 实现多对多关联。侧边栏分三区，每页展示关联上下文并支持动态建立/解除关系。
+            <code className="text-xs font-mono px-1 py-0.5 rounded bg-white/80">workspace_groups</code> 和{' '}
+            <code className="text-xs font-mono px-1 py-0.5 rounded bg-white/80">group_tags</code> 实现多对多关联。侧边栏分三区，每页展示关联上下文并支持动态建立/解除关系。
           </p>
           <div className="flex gap-6 mt-4 text-sm">
             <div>

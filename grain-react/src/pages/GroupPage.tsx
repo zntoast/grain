@@ -1,9 +1,12 @@
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   Copy,
   GripVertical,
   Trash2,
+  Plus,
+  ChevronDown,
+  X,
 } from 'lucide-react';
 import {
   DndContext,
@@ -68,18 +71,6 @@ const SortableTagItem: React.FC<SortableTagItemProps> = ({ tagId, tag, onRemove,
   );
 };
 
-// 可拖拽的分隔条
-const ResizableDivider: React.FC<{
-  onMouseDown: (e: React.MouseEvent) => void;
-}> = ({ onMouseDown }) => {
-  return (
-    <div
-      className="w-1 bg-gray-200 hover:bg-accent cursor-col-resize transition-colors flex-shrink-0"
-      onMouseDown={onMouseDown}
-    />
-  );
-};
-
 export const GroupPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
@@ -99,78 +90,15 @@ export const GroupPage: React.FC = () => {
   } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>(CATEGORIES[0]);
   const [showAddTagModal, setShowAddTagModal] = useState(false);
   const [newTagEn, setNewTagEn] = useState('');
   const [newTagZh, setNewTagZh] = useState('');
   const [newTagCategory, setNewTagCategory] = useState<string>(CATEGORIES[0]);
-  const [customTags, setCustomTags] = useState(''); // 自定义提示词输入
-  const [showEditModal, setShowEditModal] = useState(false); // 编辑弹窗
-  const [editingTagId, setEditingTagId] = useState<string | null>(null); // 当前编辑的 Tag ID
-
-  // 水平分隔条拖拽状态（左右面板）
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [leftWidth, setLeftWidth] = useState(50);
-  const [isDraggingH, setIsDraggingH] = useState(false);
-
-  // 垂直分隔条拖拽状态（左侧面板内部）
-  const leftPanelRef = useRef<HTMLDivElement>(null);
-  const [tagListHeight, setTagListHeight] = useState(50);
-  const [isDraggingV, setIsDraggingV] = useState(false);
-
-  const handleMouseDownH = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingH(true);
-  }, []);
-
-  const handleMouseMoveH = useCallback((e: MouseEvent) => {
-    if (!isDraggingH || !containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    setLeftWidth(Math.min(Math.max(newWidth, 20), 80));
-  }, [isDraggingH]);
-
-  const handleMouseUpH = useCallback(() => {
-    setIsDraggingH(false);
-  }, []);
-
-  const handleMouseDownV = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsDraggingV(true);
-  }, []);
-
-  const handleMouseMoveV = useCallback((e: MouseEvent) => {
-    if (!isDraggingV || !leftPanelRef.current) return;
-    const panelRect = leftPanelRef.current.getBoundingClientRect();
-    const newHeight = ((e.clientY - panelRect.top) / panelRect.height) * 100;
-    setTagListHeight(Math.min(Math.max(newHeight, 20), 80));
-  }, [isDraggingV]);
-
-  const handleMouseUpV = useCallback(() => {
-    setIsDraggingV(false);
-  }, []);
-
-  React.useEffect(() => {
-    if (isDraggingH) {
-      document.addEventListener('mousemove', handleMouseMoveH);
-      document.addEventListener('mouseup', handleMouseUpH);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMoveH);
-        document.removeEventListener('mouseup', handleMouseUpH);
-      };
-    }
-  }, [isDraggingH, handleMouseMoveH, handleMouseUpH]);
-
-  React.useEffect(() => {
-    if (isDraggingV) {
-      document.addEventListener('mousemove', handleMouseMoveV);
-      document.addEventListener('mouseup', handleMouseUpV);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMoveV);
-        document.removeEventListener('mouseup', handleMouseUpV);
-      };
-    }
-  }, [isDraggingV, handleMouseMoveV, handleMouseUpV]);
+  const [customTags, setCustomTags] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
 
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
@@ -189,14 +117,14 @@ export const GroupPage: React.FC = () => {
     });
   }, [workspaces, workspaceGroups, groupId]);
 
-  // 所有可选的 Tag（不筛选是否已选中）
+  // 所有可选的 Tag
   const allAvailableTags = useMemo(() => {
     return tags.filter((t) => {
       const matchesSearch = searchQuery
         ? t.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.zh.includes(searchQuery)
         : true;
-      const matchesCategory = selectedCategory ? t.category === selectedCategory : true;
+      const matchesCategory = t.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
   }, [tags, searchQuery, selectedCategory]);
@@ -210,6 +138,8 @@ export const GroupPage: React.FC = () => {
     });
     return grouped;
   }, [allAvailableTags]);
+
+  const customLines = customTags.split('\n').filter(line => line.trim());
 
   // DnD sensors
   const sensors = useSensors(
@@ -235,8 +165,7 @@ export const GroupPage: React.FC = () => {
   // 复制全部提示词（包含自定义）
   const handleCopyAll = () => {
     const tagWords = currentTags.map((t) => t!.en);
-    const customWords = customTags.split('\n').filter(line => line.trim());
-    const allWords = [...tagWords, ...customWords];
+    const allWords = [...tagWords, ...customLines];
     const text = allWords.join(', ');
     navigator.clipboard.writeText(text);
     showToast('已复制全部提示词');
@@ -291,15 +220,9 @@ export const GroupPage: React.FC = () => {
               <span className="text-sm text-gray-400">({currentTags.length})</span>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" onClick={() => {
-                setCustomTags('');
-                showToast('已重置');
-              }}>
-                取消
-              </Button>
               <Button size="sm" onClick={handleCopyAll}>
                 <Copy size={12} />
-                保存
+                复制全部
               </Button>
               <Button variant="danger" size="sm" onClick={() => {
                 if (confirm(`确定删除词组「${group.name}」吗？`)) {
@@ -317,45 +240,22 @@ export const GroupPage: React.FC = () => {
           )}
         </header>
 
-        {/* Summary Bar - Shows all tags as text */}
-        <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <p className="text-xs text-gray-500 mb-1">词组内容</p>
-              <p className="text-sm font-mono text-gray-800 whitespace-pre-wrap break-all">
-                {currentTags.length > 0 || customTags.trim()
-                  ? [...currentTags.map((t) => t!.en), ...customTags.split('\n').filter(line => line.trim())].join(', ')
-                  : '暂无提示词'}
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleCopyAll} className="ml-4 flex-shrink-0 mt-3">
-              <Copy size={12} />
-              复制
-            </Button>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div
-          ref={containerRef}
-          className="flex-1 overflow-hidden flex"
-          style={{ cursor: isDraggingH ? 'col-resize' : undefined }}
-        >
-          {/* Left Panel */}
-          <div
-            ref={leftPanelRef}
-            className="bg-white flex flex-col min-w-0"
-            style={{ width: `${leftWidth}%` }}
-          >
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-900">已选提示词</h3>
+        {/* Content — 单列垂直布局 */}
+        <div className="flex-1 overflow-y-auto">
+          {/* 已选提示词 */}
+          <section className="p-6 pb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-gray-900 section-title">
+                已选提示词
+                <span className="ml-2 text-xs font-normal text-gray-400">{currentTags.length} 个</span>
+              </h3>
+              <Button variant="ghost" size="sm" onClick={handleCopyAll}>
+                <Copy size={12} />
+                复制
+              </Button>
             </div>
 
-            {/* Tags List - Resizable */}
-            <div
-              className="overflow-y-auto p-4"
-              style={{ height: `${tagListHeight}%` }}
-            >
+            {currentTags.length > 0 ? (
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -381,86 +281,79 @@ export const GroupPage: React.FC = () => {
                   </div>
                 </SortableContext>
               </DndContext>
-            </div>
+            ) : (
+              <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-6 text-center">
+                <p className="text-sm text-gray-400">暂无提示词，从下方选择添加</p>
+              </div>
+            )}
+          </section>
 
-            {/* Vertical Divider */}
-            <div
-              className="h-1 bg-gray-200 hover:bg-accent cursor-row-resize transition-colors"
-              onMouseDown={handleMouseDownV}
-            />
-
-            {/* Custom Tags Input - Resizable */}
-            <div
-              className="p-4 border-t border-gray-200 overflow-y-auto"
-              style={{ height: `${100 - tagListHeight}%` }}
+          {/* 自定义提示词（可折叠） */}
+          <section className="px-6 pb-4">
+            <button
+              onClick={() => setShowCustomInput(!showCustomInput)}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
             >
-              <label className="block text-xs font-medium text-gray-500 mb-2">追加自定义提示词</label>
-              <textarea
-                value={customTags}
-                onChange={(e) => setCustomTags(e.target.value)}
-                placeholder="输入自定义提示词，每行一个..."
-                className="w-full h-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:border-accent focus:outline-none resize-none"
+              <ChevronDown
+                size={14}
+                className={`transition-transform ${showCustomInput ? '' : '-rotate-90'}`}
               />
-            </div>
+              自定义提示词
+              {customLines.length > 0 && (
+                <span className="text-xs text-gray-400">({customLines.length} 行)</span>
+              )}
+            </button>
 
-            {/* Parent Workspaces */}
-            <div className="p-4 border-t border-gray-200">
-              <h4 className="text-xs font-medium text-gray-500 mb-2">所属工作空间</h4>
-              <div className="flex flex-wrap gap-2">
-                {parentWorkspaces.map((ws) => (
-                  <Link
-                    key={ws.id}
-                    to={`/workspace/${ws.id}`}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100"
+            {showCustomInput && (
+              <div className="mt-3 space-y-2">
+                <textarea
+                  value={customTags}
+                  onChange={(e) => setCustomTags(e.target.value)}
+                  placeholder="输入自定义提示词，每行一个..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:border-accent focus:outline-none resize-none"
+                />
+                {customTags && (
+                  <button
+                    onClick={() => setCustomTags('')}
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"
                   >
-                    <span
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ background: `oklch(58% 0.18 ${ws.color})` }}
-                    />
-                    {ws.name}
-                  </Link>
-                ))}
-                {parentWorkspaces.length === 0 && (
-                  <span className="text-xs text-gray-400">未关联工作空间</span>
+                    <X size={12} />
+                    清除
+                  </button>
                 )}
               </div>
-            </div>
-          </div>
+            )}
+          </section>
 
-          {/* Resizable Divider */}
-          <ResizableDivider onMouseDown={handleMouseDownH} />
+          {/* 分隔线 */}
+          <div className="mx-6 border-t border-gray-200" />
 
-          {/* Right Panel: Tag Selector */}
-          <div
-            className="flex-1 flex flex-col min-w-0 bg-gray-50"
-            style={{ width: `${100 - leftWidth}%` }}
-          >
-            <div className="p-4 border-b border-gray-200 bg-white">
+          {/* 选择提示词 */}
+          <section className="p-6 pt-5">
+            <h3 className="text-sm font-semibold text-gray-900 mb-4 section-title">选择提示词</h3>
+
+            {/* 搜索 + 新增 */}
+            <div className="flex items-center gap-3 mb-4">
               <SearchBox
                 value={searchQuery}
                 onChange={setSearchQuery}
                 placeholder="搜索提示词..."
-                className="max-w-xs"
+                className="flex-1 max-w-sm"
               />
+              <Button variant="secondary" size="sm" onClick={() => setShowAddTagModal(true)}>
+                <Plus size={12} />
+                新增
+              </Button>
             </div>
 
-            {/* Category Filter */}
-            <div className="px-4 py-3 border-b border-gray-200 bg-white flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={`px-2.5 py-1 rounded text-xs whitespace-nowrap ${
-                  selectedCategory === null
-                    ? 'bg-accent text-white'
-                    : 'bg-white border border-gray-200 text-gray-600'
-                }`}
-              >
-                全部
-              </button>
+            {/* 分类筛选 */}
+            <div className="flex items-center gap-2 flex-wrap mb-5">
               {CATEGORIES.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded text-xs whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded text-xs ${
                     selectedCategory === cat
                       ? 'bg-accent text-white'
                       : 'bg-white border border-gray-200 text-gray-600'
@@ -471,31 +364,54 @@ export const GroupPage: React.FC = () => {
               ))}
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              {Object.keys(groupedAvailableTags).length > 0 ? (
-                Object.entries(groupedAvailableTags).map(([category, categoryTags]) => (
-                  <div key={category} className="mb-6">
-                    <h4 className="text-xs font-semibold text-gray-500 mb-2">{category}</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {categoryTags.map((tag) => (
-                        <TagChip
-                          key={tag.id}
-                          en={tag.en}
-                          zh={tag.zh}
-                          selected={currentTagIds.includes(tag.id)}
-                          onClick={() => handleToggleTag(tag.id)}
-                        />
-                      ))}
-                    </div>
+            {/* 标签选择区 */}
+            {Object.keys(groupedAvailableTags).length > 0 ? (
+              Object.entries(groupedAvailableTags).map(([category, categoryTags]) => (
+                <div key={category} className="mb-5">
+                  <h4 className="text-xs font-semibold text-gray-500 mb-2">{category}</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {categoryTags.map((tag) => (
+                      <TagChip
+                        key={tag.id}
+                        en={tag.en}
+                        zh={tag.zh}
+                        size="sm"
+                        selected={currentTagIds.includes(tag.id)}
+                        onClick={() => handleToggleTag(tag.id)}
+                      />
+                    ))}
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-12 text-gray-400">
-                  <p>没有可用的提示词</p>
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-12 text-gray-400">
+                <p>没有可用的提示词</p>
+              </div>
+            )}
+          </section>
+
+          {/* 所属工作空间 */}
+          <section className="px-6 pb-6 border-t border-gray-100 pt-4">
+            <h4 className="text-xs font-medium text-gray-500 mb-2">所属工作空间</h4>
+            <div className="flex flex-wrap gap-2">
+              {parentWorkspaces.map((ws) => (
+                <Link
+                  key={ws.id}
+                  to={`/workspace/${ws.id}`}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100"
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: `oklch(58% 0.18 ${ws.color})` }}
+                  />
+                  {ws.name}
+                </Link>
+              ))}
+              {parentWorkspaces.length === 0 && (
+                <span className="text-xs text-gray-400">未关联工作空间</span>
               )}
             </div>
-          </div>
+          </section>
         </div>
       </div>
 

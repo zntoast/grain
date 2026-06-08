@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { CursorEffects, SyncToast } from './components';
 import { HomePage, WorkspacePage, GroupPage, TagEditorPage, AllTagsPage } from './pages';
 import { useStore } from './store';
 
@@ -7,6 +8,8 @@ function App() {
 
   return (
     <BrowserRouter>
+      <CursorEffects />
+      <SyncToast />
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/workspace/:workspaceId" element={<WorkspacePage />} />

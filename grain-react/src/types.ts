@@ -40,10 +40,31 @@ export type GroupTags = Record<string, string[]>;
 export interface Folder {
   id: string;
   name: string;
+  parentId?: string;
 }
 
 // 词组-目录映射
 export type GroupFolderMap = Record<string, string>;
+
+export type CursorMode = 'spark' | 'burst' | 'off';
+
+export interface GrainDataSnapshot {
+  version: 1;
+  savedAt: string;
+  workspaces: Workspace[];
+  groups: Group[];
+  tags: Tag[];
+  workspaceGroups: WorkspaceGroups;
+  groupTags: GroupTags;
+  folders: Folder[];
+  groupFolderMap: GroupFolderMap;
+  tagIdCounter: number;
+  folderIdCounter: number;
+  sidebarCollapsed: boolean;
+  currentWorkspaceId: string | null;
+  cursorMode: CursorMode;
+  syncInterval: number;
+}
 
 // 分类列表
 export const CATEGORIES = ['角色', '画风', '构图', '光影', '画质', '场景', '色调', '表情', '姿势', '特效'] as const;
@@ -67,6 +88,8 @@ export interface StoreState {
   // UI 状态
   sidebarCollapsed: boolean;
   currentWorkspaceId: string | null;
+  cursorMode: CursorMode;
+  syncInterval: number;
   
   // Actions
   // 工作空间
@@ -99,14 +122,19 @@ export interface StoreState {
   reorderTagsInGroup: (groupId: string, tagIds: string[]) => void;
   
   // 目录
-  addFolder: (name: string) => Folder;
+  addFolder: (name: string, parentId?: string) => Folder;
   updateFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
+  moveGroupToFolder: (groupId: string, folderId?: string) => void;
   
   // UI
   toggleSidebar: () => void;
+  setCursorMode: (mode: CursorMode) => void;
+  setSyncInterval: (seconds: number) => void;
   
   // 数据持久化
   loadFromStorage: () => void;
   saveToStorage: () => void;
+  exportData: () => GrainDataSnapshot;
+  importData: (data: Partial<GrainDataSnapshot>) => void;
 }

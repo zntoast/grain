@@ -199,7 +199,7 @@ export const AllTagsPage: React.FC = () => {
           {Object.keys(groupedTags).length > 0 ? (
             Object.entries(groupedTags).map(([category, categoryTags]) => (
               <div key={category} className="mb-6">
-                <h3 className="text-sm font-semibold text-gray-500 mb-3">{category}</h3>
+                <h3 className="text-sm font-semibold text-gray-500 mb-3 section-title">{category}</h3>
                 <div className="flex flex-wrap gap-2">
                   {categoryTags.map((tag) => (
                     <TagChip

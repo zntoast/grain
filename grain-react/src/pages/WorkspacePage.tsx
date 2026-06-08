@@ -1,13 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  Plus,
-  X,
-  Copy,
-  FolderOpen,
-} from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { LayoutGrid, List, Plus } from 'lucide-react';
 import { useStore } from '../store';
-import { Layout, Button, Modal, SearchBox, TagChip, useToast, Toast } from '../components';
+import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast } from '../components';
 import { COLOR_OPTIONS } from '../constants';
 
 export const WorkspacePage: React.FC = () => {
@@ -22,7 +17,8 @@ export const WorkspacePage: React.FC = () => {
     workspaceGroups,
     groupTags,
     addWorkspace,
-    deleteWorkspace,
+    updateWorkspace,
+    addGroup,
     linkGroupToWorkspace,
     unlinkGroupFromWorkspace,
     setGroupType,
@@ -30,9 +26,12 @@ export const WorkspacePage: React.FC = () => {
   } = useStore();
 
   const [viewType, setViewType] = useState<'positive' | 'negative' | 'all'>('positive');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [layoutMode, setLayoutMode] = useState<'grid' | 'row'>('grid');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
   const [newWorkspaceName, setNewWorkspaceName] = useState('');
   const [newWorkspaceDesc, setNewWorkspaceDesc] = useState('');
   const [newWorkspaceColor, setNewWorkspaceColor] = useState(COLOR_OPTIONS[0]);
@@ -40,6 +39,17 @@ export const WorkspacePage: React.FC = () => {
   const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
   const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
   const [dropOverGroupId, setDropOverGroupId] = useState<string | null>(null);
+  const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
+  const [editingWsField, setEditingWsField] = useState<'name' | 'desc' | null>(null);
+  const [editingWsValue, setEditingWsValue] = useState('');
+  const [openWorkspaceIds, setOpenWorkspaceIds] = useState<string[]>([workspaceId!]);
+
+  // 确保当前 workspaceId 始终在打开列表中
+  useEffect(() => {
+    if (workspaceId && !openWorkspaceIds.includes(workspaceId)) {
+      setOpenWorkspaceIds((prev) => [...prev, workspaceId]);
+    }
+  }, [workspaceId, openWorkspaceIds]);
 
   // 当前工作空间
   const workspace = workspaces.find((ws) => ws.id === workspaceId);
@@ -55,14 +65,8 @@ export const WorkspacePage: React.FC = () => {
     }
     return entries
       .map((e) => ({ group: groups.find((g) => g.id === e.groupId), type: e.type }))
-      .filter((item) => item.group)
-      .filter((item) =>
-        searchQuery
-          ? item.group!.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            item.group!.desc.toLowerCase().includes(searchQuery.toLowerCase())
-          : true
-      );
-  }, [workspaceGroupEntries, viewType, groups, searchQuery]);
+      .filter((item) => item.group);
+  }, [workspaceGroupEntries, viewType, groups]);
 
   // 汇总所有提示词
   const allTags = useMemo(() => {
@@ -119,6 +123,7 @@ export const WorkspacePage: React.FC = () => {
       desc: newWorkspaceDesc.trim(),
       color: newWorkspaceColor,
     });
+    setOpenWorkspaceIds((prev) => [...prev, ws.id]);
     setShowCreateModal(false);
     setNewWorkspaceName('');
     setNewWorkspaceDesc('');
@@ -126,41 +131,36 @@ export const WorkspacePage: React.FC = () => {
     navigate(`/workspace/${ws.id}`);
   };
 
-  // 删除工作空间
-  const handleDeleteWorkspace = (wsId: string) => {
-    const ws = workspaces.find((w) => w.id === wsId);
-    if (!ws) return;
-    if (confirm(`确定删除工作空间「${ws.name}」？关联关系将被移除，但组和提示词数据不受影响。`)) {
-      deleteWorkspace(wsId);
-      if (wsId === workspaceId) {
-        const nextWs = workspaces.find((w) => w.id !== wsId);
-        if (nextWs) {
-          navigate(`/workspace/${nextWs.id}`);
-        } else {
-          navigate('/');
-        }
-      }
+  // 更新工作空间名称/描述
+  const handleUpdateWorkspace = () => {
+    if (!workspaceId || !editingWsField || !editingWsValue.trim()) {
+      setEditingWsField(null);
+      return;
     }
+    updateWorkspace(workspaceId, { [editingWsField]: editingWsValue.trim() });
+    setEditingWsField(null);
+  };
+
+  // 新建词组并关联到当前工作空间
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim() || !workspaceId) return;
+    const group = addGroup({ name: newGroupName.trim(), desc: newGroupDesc.trim() });
+    linkGroupToWorkspace(workspaceId, group.id, viewType === 'negative' ? 'negative' : 'positive');
+    setShowNewGroupModal(false);
+    setNewGroupName('');
+    setNewGroupDesc('');
+    showToast('已创建并关联词组');
   };
 
   // 关联词组
   const handleLinkGroups = () => {
     if (!workspaceId) return;
+    const linkType = viewType === 'negative' ? 'negative' : 'positive';
     selectedGroups.forEach((groupId) => {
-      linkGroupToWorkspace(workspaceId, groupId, viewType);
+      linkGroupToWorkspace(workspaceId, groupId, linkType);
     });
     setShowLinkModal(false);
     setSelectedGroups([]);
-  };
-
-  // 切换词组类型
-  const handleToggleGroupType = (groupId: string) => {
-    if (!workspaceId) return;
-    const entry = workspaceGroupEntries.find((e) => e.groupId === groupId);
-    if (entry) {
-      const newType = entry.type === 'positive' ? 'negative' : 'positive';
-      setGroupType(workspaceId, groupId, newType);
-    }
   };
 
   // 切换视图模式
@@ -224,6 +224,99 @@ export const WorkspacePage: React.FC = () => {
     return groups.filter((g) => !linkedIds.has(g.id));
   }, [groups, workspaceGroupEntries]);
 
+  // 渲染词组卡片（网格 / 行 双模式）
+  const renderGroupCard = (item: { group: NonNullable<ReturnType<typeof groups.find>>; type: 'positive' | 'negative' }) => {
+    const { group, type } = item;
+    const groupTagsList = getGroupTags(group.id);
+    const isDragging = draggedGroupId === group.id;
+    const isDropOver = dropOverGroupId === group.id;
+    const isPositive = type === 'positive';
+
+    if (layoutMode === 'row') {
+      return (
+        <div
+          key={group.id}
+          draggable
+          onDragStart={(e) => handleDragStart(e, group.id)}
+          onDragEnd={handleDragEnd}
+          onDragOver={(e) => handleDragOver(e, group.id)}
+          onDragLeave={handleDragLeave}
+          onDrop={(e) => handleDrop(e, group.id)}
+          onMouseEnter={() => setHoveredGroupId(group.id)}
+          onMouseLeave={() => setHoveredGroupId(null)}
+          className={`flex items-center gap-3 px-4 py-2 bg-[#f4efe8] border border-gray-200 rounded-lg hover:border-gray-300 cursor-grab transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
+        >
+          <span className="text-gray-300 cursor-grab select-none text-sm">⠿</span>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+            {isPositive ? '正向' : '负面'}
+          </span>
+          <button onClick={() => setEditingGroupId(group.id)} className="text-sm font-medium text-gray-900 hover:text-accent truncate text-left">{group.name}</button>
+          <span className="text-xs text-gray-400 ml-auto tabular-nums flex-shrink-0">{groupTagsList.length} 词</span>
+          <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md flex-shrink-0">
+            {isPositive ? (
+              <>
+                <span className="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">正向</span>
+                <button onClick={() => handleChangeGroupType(group.id, 'negative')} className="px-2 py-0.5 rounded text-xs text-gray-400 hover:bg-white hover:text-red-500">负向</button>
+              </>
+            ) : (
+              <>
+                <button onClick={() => handleChangeGroupType(group.id, 'positive')} className="px-2 py-0.5 rounded text-xs text-gray-400 hover:bg-white hover:text-green-500">正向</button>
+                <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-medium">负向</span>
+              </>
+            )}
+          </div>
+          <button onClick={() => handleUnlinkGroup(group.id)} className="px-2 py-0.5 rounded text-xs text-red-400 hover:bg-red-50 hover:text-red-500 flex-shrink-0">解除</button>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={group.id}
+        draggable
+        onDragStart={(e) => handleDragStart(e, group.id)}
+        onDragEnd={handleDragEnd}
+        onDragOver={(e) => handleDragOver(e, group.id)}
+        onDragLeave={handleDragLeave}
+        onDrop={(e) => handleDrop(e, group.id)}
+        onMouseEnter={() => setHoveredGroupId(group.id)}
+        onMouseLeave={() => setHoveredGroupId(null)}
+        className={`bg-[#f4efe8] border border-gray-200 rounded-xl overflow-hidden card-accent-top card-hover cursor-grab ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
+      >
+        <div className="px-4 pt-4 flex justify-between items-start">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-gray-400 cursor-grab select-none">⠿</span>
+            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0 ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {isPositive ? '正向' : '负面'}
+            </span>
+            <h4 className="text-sm font-semibold tracking-tight truncate">{group.name}</h4>
+          </div>
+          <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full flex-shrink-0">{groupTagsList.length} 个词</span>
+        </div>
+        <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed line-clamp-2">{group.desc}</p>
+        <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
+          <button onClick={() => setEditingGroupId(group.id)} className="text-xs text-accent hover:underline">管理提示词 →</button>
+          <div className="flex gap-1.5 items-center">
+            <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
+              {isPositive ? (
+                <>
+                  <span className="px-2.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">正向</span>
+                  <button onClick={() => handleChangeGroupType(group.id, 'negative')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-red-600">负向</button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => handleChangeGroupType(group.id, 'positive')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-green-600">正向</button>
+                  <span className="px-2.5 py-0.5 rounded text-xs bg-red-100 text-red-700 font-medium">负向</span>
+                </>
+              )}
+            </div>
+            <button onClick={() => handleUnlinkGroup(group.id)} className="h-7 px-2.5 rounded-md border text-xs text-red-500 border-red-200 bg-transparent hover:bg-red-50">解除关联</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!workspace) {
     return (
       <Layout>
@@ -240,36 +333,11 @@ export const WorkspacePage: React.FC = () => {
   return (
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Top Bar */}
-        <header className="h-14 border-b border-gray-200 flex items-center gap-3 px-6 bg-white flex-shrink-0">
-          <h2 className="text-base font-semibold tracking-tight">{workspace.name}</h2>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 h-8 w-60">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="opacity-40">
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input
-                type="text"
-                placeholder="搜索组名…"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="border-none bg-transparent text-sm flex-1 outline-none min-w-0 text-gray-900 placeholder-gray-400"
-              />
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button className="h-9 px-4 rounded-lg border border-gray-200 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                关联词组
-              </button>
-            </div>
-          </div>
-        </header>
-
         {/* Workspace Tabs */}
         <div className="h-11 border-b border-gray-200 flex items-center gap-1 px-6 bg-white flex-shrink-0">
-          {workspaces.map((ws) => {
+          {openWorkspaceIds.map((id) => {
+            const ws = workspaces.find((w) => w.id === id);
+            if (!ws) return null;
             const isActive = ws.id === workspaceId;
             return (
               <button
@@ -288,18 +356,24 @@ export const WorkspacePage: React.FC = () => {
                 {ws.name}
                 {isActive && (
                   <span
-                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-sm"
-                    style={{ background: 'oklch(58% 0.18 255)' }}
+                    className="absolute bottom-0 left-0 right-0 h-0.5 rounded-t-sm workspace-tab-active"
                   />
                 )}
-                {workspaces.length > 1 && (
+                {openWorkspaceIds.length > 1 && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleDeleteWorkspace(ws.id);
+                      const idx = openWorkspaceIds.indexOf(ws.id);
+                      const remaining = openWorkspaceIds.filter((oid) => oid !== ws.id);
+                      setOpenWorkspaceIds(remaining);
+                      if (isActive) {
+                        // 优先跳到右侧邻接标签，没有则左侧
+                        const next = remaining[Math.min(idx, remaining.length - 1)];
+                        navigate(`/workspace/${next}`);
+                      }
                     }}
-                    className="w-4 h-4 rounded text-xs opacity-0 group-hover:opacity-100 ml-0.5 hover:bg-gray-200 flex items-center justify-center"
-                    style={{ opacity: undefined }}
+                    className="w-4 h-4 rounded text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-600 flex items-center justify-center ml-0.5"
+                    title="关闭"
                   >
                     ×
                   </button>
@@ -320,65 +394,132 @@ export const WorkspacePage: React.FC = () => {
           {/* Page Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-2xl font-semibold tracking-tight leading-tight">{workspace.name}</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                {workspace.desc} · 关联 {stats.groupCount} 个词组 · <code className="text-xs px-1.5 py-0.5 rounded bg-gray-100 font-mono">workspace_groups</code>
-              </p>
+              {editingWsField === 'name' ? (
+                <input
+                  type="text"
+                  value={editingWsValue}
+                  onChange={(e) => setEditingWsValue(e.target.value)}
+                  onBlur={handleUpdateWorkspace}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateWorkspace()}
+                  onKeyUp={(e) => e.key === 'Escape' && setEditingWsField(null)}
+                  className="text-2xl font-semibold tracking-tight leading-tight w-full px-2 py-1 border border-accent rounded-lg outline-none"
+                  autoFocus
+                />
+              ) : (
+                <h1
+                  className="text-2xl font-semibold tracking-tight leading-tight cursor-pointer hover:text-accent"
+                  onDoubleClick={() => { setEditingWsField('name'); setEditingWsValue(workspace.name); }}
+                  title="双击编辑名称"
+                >
+                  {workspace.name}
+                </h1>
+              )}
+              {editingWsField === 'desc' ? (
+                <input
+                  type="text"
+                  value={editingWsValue}
+                  onChange={(e) => setEditingWsValue(e.target.value)}
+                  onBlur={handleUpdateWorkspace}
+                  onKeyDown={(e) => e.key === 'Enter' && handleUpdateWorkspace()}
+                  onKeyUp={(e) => e.key === 'Escape' && setEditingWsField(null)}
+                  className="text-sm text-gray-500 mt-1 w-full px-2 py-1 border border-accent rounded-lg outline-none"
+                  autoFocus
+                />
+              ) : (
+                <p
+                  className="text-sm text-gray-500 mt-1 cursor-pointer hover:text-gray-700"
+                  onDoubleClick={() => { setEditingWsField('desc'); setEditingWsValue(workspace.desc); }}
+                  title="双击编辑描述"
+                >
+                  {workspace.desc} · 关联 {stats.groupCount} 个词组
+                </p>
+              )}
             </div>
+            <Button variant="gradient" onClick={() => setShowNewGroupModal(true)}>
+              <Plus size={14} />
+              新增词组
+            </Button>
           </div>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-4 gap-3 mb-8">
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-xs text-gray-500 mb-1">关联词组数</div>
-              <div className="text-2xl font-semibold tracking-tight font-variant-numeric tabular-nums">{stats.groupCount}</div>
+          <div className="grid grid-cols-2 gap-3 mb-8">
+            <div className="bg-white border border-gray-200 rounded-xl p-4 card-hover card-accent-workspace">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg icon-bg-workspace flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                </div>
+                <span className="text-xs text-gray-500">关联词组数</span>
+              </div>
+              <div className="text-2xl font-semibold tracking-tight tabular-nums">{stats.groupCount}</div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-xs text-gray-500 mb-1">涉及提示词</div>
-              <div className="text-2xl font-semibold tracking-tight font-variant-numeric tabular-nums">{stats.tagCount}</div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-xs text-gray-500 mb-1">工作空间总数</div>
-              <div className="text-2xl font-semibold tracking-tight font-variant-numeric tabular-nums">{stats.workspaceCount}</div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <div className="text-xs text-gray-500 mb-1">导出次数</div>
-              <div className="text-2xl font-semibold tracking-tight font-variant-numeric tabular-nums">0</div>
+            <div className="bg-white border border-gray-200 rounded-xl p-4 card-hover card-accent-tag">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-7 h-7 rounded-lg icon-bg-tag flex items-center justify-center">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                </div>
+                <span className="text-xs text-gray-500">涉及提示词</span>
+              </div>
+              <div className="text-2xl font-semibold tracking-tight tabular-nums">{stats.tagCount}</div>
             </div>
           </div>
 
           {/* View Tabs */}
-          <div className="flex gap-0.5 mb-6 p-0.5 bg-white border border-gray-200 rounded-xl w-fit">
-            <button
-              onClick={() => setViewType('all')}
-              className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
-                viewType === 'all'
-                  ? 'bg-accent text-white font-medium'
-                  : 'bg-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              全部
-            </button>
-            <button
-              onClick={() => setViewType('positive')}
-              className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
-                viewType === 'positive'
-                  ? 'bg-accent text-white font-medium'
-                  : 'bg-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              正向词组
-            </button>
-            <button
-              onClick={() => setViewType('negative')}
-              className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
-                viewType === 'negative'
-                  ? 'bg-accent text-white font-medium'
-                  : 'bg-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              负面词组
-            </button>
+          <div className="flex items-center gap-3 mb-6">
+            <div className="flex gap-0.5 p-0.5 bg-white border border-gray-200 rounded-xl">
+              <button
+                onClick={() => setViewType('all')}
+                className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
+                  viewType === 'all'
+                    ? 'bg-accent text-white font-medium'
+                    : 'bg-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                全部
+              </button>
+              <button
+                onClick={() => setViewType('positive')}
+                className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
+                  viewType === 'positive'
+                    ? 'bg-accent text-white font-medium'
+                    : 'bg-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                正向词组
+              </button>
+              <button
+                onClick={() => setViewType('negative')}
+                className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
+                  viewType === 'negative'
+                    ? 'bg-accent text-white font-medium'
+                    : 'bg-transparent text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                负面词组
+              </button>
+            </div>
+
+            {/* 布局切换 */}
+            <div className="flex gap-0.5 p-0.5 bg-white border border-gray-200 rounded-lg">
+              <button
+                onClick={() => setLayoutMode('grid')}
+                title="网格视图"
+                className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+                  layoutMode === 'grid' ? 'bg-accent text-white' : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <LayoutGrid size={14} />
+              </button>
+              <button
+                onClick={() => setLayoutMode('row')}
+                title="行视图"
+                className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors ${
+                  layoutMode === 'row' ? 'bg-accent text-white' : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                <List size={14} />
+              </button>
+            </div>
+
           </div>
 
           {/* Group Section */}
@@ -429,51 +570,14 @@ export const WorkspacePage: React.FC = () => {
                     })}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'positive').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'positive').map((item) => {
-                      const group = item.group!;
-                      const groupTagsList = getGroupTags(group.id);
-                      const isDragging = draggedGroupId === group.id;
-                      const isDropOver = dropOverGroupId === group.id;
-                      return (
-                        <div
-                          key={group.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, group.id)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e) => handleDragOver(e, group.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, group.id)}
-                          onMouseEnter={() => setHoveredGroupId(group.id)}
-                          onMouseLeave={() => setHoveredGroupId(null)}
-                          className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-grab ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
-                        >
-                          <div className="px-4 pt-4 flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400 cursor-grab select-none">⠿</span>
-                              <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-green-100 text-green-700">正向</span>
-                              <h4 className="text-sm font-semibold tracking-tight">{group.name}</h4>
-                            </div>
-                            <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{groupTagsList.length} 个词</span>
-                          </div>
-                          <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed">{group.desc}</p>
-                          <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
-                            <Link to={`/group/${group.id}`} className="text-xs text-accent hover:underline">管理提示词 →</Link>
-                            <div className="flex gap-1.5 items-center">
-                              <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
-                                <button className="px-2.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">正向</button>
-                                <button onClick={() => handleChangeGroupType(group.id, 'negative')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-red-600">负向</button>
-                              </div>
-                              <button onClick={() => handleUnlinkGroup(group.id)} className="h-7 px-2.5 rounded-md border text-xs text-red-500 border-red-200 bg-transparent hover:bg-red-50">解除关联</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
+                    filteredGroups.filter(g => g.type === 'positive').map((item) => renderGroupCard(item))
                   ) : (
-                    <div className="col-span-2 bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
-                      <p className="text-gray-500 text-sm">暂无正向词组。</p>
+                    <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
+                      <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
+                        <p className="text-gray-500 text-sm">暂无正向词组。</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -523,51 +627,14 @@ export const WorkspacePage: React.FC = () => {
                     })}
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'negative').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'negative').map((item) => {
-                      const group = item.group!;
-                      const groupTagsList = getGroupTags(group.id);
-                      const isDragging = draggedGroupId === group.id;
-                      const isDropOver = dropOverGroupId === group.id;
-                      return (
-                        <div
-                          key={group.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, group.id)}
-                          onDragEnd={handleDragEnd}
-                          onDragOver={(e) => handleDragOver(e, group.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, group.id)}
-                          onMouseEnter={() => setHoveredGroupId(group.id)}
-                          onMouseLeave={() => setHoveredGroupId(null)}
-                          className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-grab ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
-                        >
-                          <div className="px-4 pt-4 flex justify-between items-start">
-                            <div className="flex items-center gap-2">
-                              <span className="text-gray-400 cursor-grab select-none">⠿</span>
-                              <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-red-100 text-red-700">负面</span>
-                              <h4 className="text-sm font-semibold tracking-tight">{group.name}</h4>
-                            </div>
-                            <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{groupTagsList.length} 个词</span>
-                          </div>
-                          <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed">{group.desc}</p>
-                          <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
-                            <Link to={`/group/${group.id}`} className="text-xs text-accent hover:underline">管理提示词 →</Link>
-                            <div className="flex gap-1.5 items-center">
-                              <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
-                                <button onClick={() => handleChangeGroupType(group.id, 'positive')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-green-600">正向</button>
-                                <button className="px-2.5 py-0.5 rounded text-xs bg-red-100 text-red-700 font-medium">负向</button>
-                              </div>
-                              <button onClick={() => handleUnlinkGroup(group.id)} className="h-7 px-2.5 rounded-md border text-xs text-red-500 border-red-200 bg-transparent hover:bg-red-50">解除关联</button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
+                    filteredGroups.filter(g => g.type === 'negative').map((item) => renderGroupCard(item))
                   ) : (
-                    <div className="col-span-2 bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
-                      <p className="text-gray-500 text-sm">暂无负面词组。</p>
+                    <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
+                      <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
+                        <p className="text-gray-500 text-sm">暂无负面词组。</p>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -627,66 +694,17 @@ export const WorkspacePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                 {filteredGroups.length > 0 ? (
-                  filteredGroups.map((item) => {
-                    const group = item.group!;
-                    const groupTagsList = getGroupTags(group.id);
-                    const isDragging = draggedGroupId === group.id;
-                    const isDropOver = dropOverGroupId === group.id;
-                    return (
-                      <div
-                        key={group.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, group.id)}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={(e) => handleDragOver(e, group.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={(e) => handleDrop(e, group.id)}
-                        onMouseEnter={() => setHoveredGroupId(group.id)}
-                        onMouseLeave={() => setHoveredGroupId(null)}
-                        className={`bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow cursor-grab ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
-                      >
-                        <div className="px-4 pt-4 flex justify-between items-start">
-                          <div className="flex items-center gap-2">
-                            <span className="text-gray-400 cursor-grab select-none">⠿</span>
-                            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${viewType === 'positive' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                              {viewType === 'positive' ? '正向' : '负面'}
-                            </span>
-                            <h4 className="text-sm font-semibold tracking-tight">{group.name}</h4>
-                          </div>
-                          <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full">{groupTagsList.length} 个词</span>
-                        </div>
-                        <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed">{group.desc}</p>
-                        <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
-                          <Link to={`/group/${group.id}`} className="text-xs text-accent hover:underline">管理提示词 →</Link>
-                          <div className="flex gap-1.5 items-center">
-                            <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
-                              <button
-                                onClick={() => handleChangeGroupType(group.id, 'positive')}
-                                className={`px-2.5 py-0.5 rounded text-xs ${viewType === 'positive' ? 'bg-green-100 text-green-700 font-medium' : 'text-gray-500 hover:text-green-600'}`}
-                              >
-                                正向
-                              </button>
-                              <button
-                                onClick={() => handleChangeGroupType(group.id, 'negative')}
-                                className={`px-2.5 py-0.5 rounded text-xs ${viewType === 'negative' ? 'bg-red-100 text-red-700 font-medium' : 'text-gray-500 hover:text-red-600'}`}
-                              >
-                                负向
-                              </button>
-                            </div>
-                            <button onClick={() => handleUnlinkGroup(group.id)} className="h-7 px-2.5 rounded-md border text-xs text-red-500 border-red-200 bg-transparent hover:bg-red-50">解除关联</button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
+                  filteredGroups.map((item) => renderGroupCard(item))
                 ) : (
-                  <div className="col-span-2 bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
-                    <p className="text-gray-500 text-sm">
-                      暂无{viewType === 'positive' ? '正向' : '负面'}词组。
-                      <button onClick={() => setShowLinkModal(true)} className="text-accent hover:underline ml-1">关联一个词组</button>
-                    </p>
+                  <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
+                    <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
+                      <p className="text-gray-500 text-sm">
+                        暂无{viewType === 'positive' ? '正向' : '负面'}词组。
+                        <button onClick={() => setShowLinkModal(true)} className="text-accent hover:underline ml-1">关联一个词组</button>
+                      </p>
+                    </div>
                   </div>
                 )}
               </div>
@@ -702,6 +720,45 @@ export const WorkspacePage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 新增词组弹窗 */}
+      <Modal
+        isOpen={showNewGroupModal}
+        onClose={() => setShowNewGroupModal(false)}
+        title="新增词组"
+        description={`创建新词组并自动关联到「${workspace.name}」`}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">词组名称</label>
+            <input
+              type="text"
+              value={newGroupName}
+              onChange={(e) => setNewGroupName(e.target.value)}
+              placeholder="例如：人物肖像"
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1">描述（可选）</label>
+            <input
+              type="text"
+              value={newGroupDesc}
+              onChange={(e) => setNewGroupDesc(e.target.value)}
+              placeholder="简短描述该词组的用途"
+              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="secondary" onClick={() => setShowNewGroupModal(false)}>
+              取消
+            </Button>
+            <Button onClick={handleCreateGroup} disabled={!newGroupName.trim()}>
+              创建
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Create Workspace Modal */}
       <Modal
@@ -847,6 +904,11 @@ export const WorkspacePage: React.FC = () => {
         </div>
       </Modal>
 
+      <GroupTagEditModal
+        isOpen={editingGroupId !== null}
+        onClose={() => setEditingGroupId(null)}
+        groupId={editingGroupId}
+      />
       <Toast {...toast} onClose={hideToast} />
     </Layout>
   );

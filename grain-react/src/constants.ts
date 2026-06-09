@@ -1,4 +1,5 @@
 import type { Workspace, Group, Tag, WorkspaceGroups, GroupTags } from './types';
+import { WOLFCHEN_TAGS } from './scrapedTags';
 
 // 默认工作空间
 export const DEFAULT_WORKSPACES: Workspace[] = [
@@ -263,6 +264,7 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: 't234', en: 'water_splash', zh: '水花', category: '特效' },
   { id: 't235', en: 'dust', zh: '尘埃', category: '特效' },
   { id: 't236', en: 'shimmer', zh: '微光', category: '特效' },
+  ...WOLFCHEN_TAGS,
 ];
 
 // 默认工作空间-词组关联

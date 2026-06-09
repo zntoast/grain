@@ -4,6 +4,7 @@ import { LayoutGrid, List, Plus } from 'lucide-react';
 import { useStore } from '../store';
 import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast } from '../components';
 import { COLOR_OPTIONS } from '../constants';
+import type { Group } from '../types';
 
 export const WorkspacePage: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -65,7 +66,7 @@ export const WorkspacePage: React.FC = () => {
     }
     return entries
       .map((e) => ({ group: groups.find((g) => g.id === e.groupId), type: e.type }))
-      .filter((item) => item.group);
+      .filter((item): item is { group: Group; type: 'positive' | 'negative' } => Boolean(item.group));
   }, [workspaceGroupEntries, viewType, groups]);
 
   // 汇总所有提示词

@@ -12,3 +12,4 @@ export { SyncToast } from './SyncToast';
 export { SettingsModal } from './SettingsModal';
 export { GroupTagEditModal } from './GroupTagEditModal';
 export { GroupCard } from './GroupCard';
+export { ImagePreview } from './ImagePreview';

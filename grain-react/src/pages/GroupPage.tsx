@@ -26,7 +26,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useStore } from '../store';
-import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
+import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal, ImagePreview } from '../components';
 import { CATEGORIES } from '../types';
 
 // Sortable Tag Item
@@ -242,6 +242,15 @@ export const GroupPage: React.FC = () => {
 
         {/* Content — 单列垂直布局 */}
         <div className="flex-1 overflow-y-auto">
+          {/* 图片预览 */}
+          <section className="p-6 pb-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-3 section-title">效果预览</h3>
+            <ImagePreview
+              prompt={currentTags.map((t) => t!.en).join(', ')}
+              tags={currentTags.map((t) => t!.zh)}
+            />
+          </section>
+
           {/* 已选提示词 */}
           <section className="p-6 pb-4">
             <div className="flex items-center justify-between mb-3">

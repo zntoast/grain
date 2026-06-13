@@ -26,7 +26,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useStore } from '../store';
-import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal, ImagePreview } from '../components';
+import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
+import { ImagePreview } from '../components/ImagePreview';
 import { CATEGORIES } from '../types';
 
 // Sortable Tag Item

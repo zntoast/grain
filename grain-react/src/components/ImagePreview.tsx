@@ -40,79 +40,75 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ prompt, tags }) => {
 
   if (tags.length === 0) {
     return (
-      <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-8 border border-pink-100">
-        <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-pink-100 flex items-center justify-center">
-            <Image size={28} className="text-pink-400" />
+      <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-xl p-4 border border-pink-100">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center flex-shrink-0">
+            <Image size={18} className="text-pink-400" />
           </div>
-          <h4 className="text-sm font-medium text-gray-700 mb-2">图片预览</h4>
-          <p className="text-xs text-gray-400">
-            添加提示词后，可预览生成效果
-          </p>
+          <div>
+            <h4 className="text-xs font-medium text-gray-700">图片预览</h4>
+            <p className="text-[11px] text-gray-400">添加提示词后可预览</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 rounded-2xl border border-pink-100 overflow-hidden">
-      {/* 图片展示区 */}
-      <div className="relative aspect-square bg-gray-100">
-        {isLoading ? (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3">
-              <RefreshCw size={24} className="text-pink-400 animate-spin" />
-              <span className="text-xs text-gray-500">生成预览中...</span>
+    <div className="bg-gradient-to-br from-pink-50/50 via-white to-purple-50/30 rounded-xl border border-pink-100 overflow-hidden">
+      <div className="flex gap-3 p-3">
+        {/* 缩略图 */}
+        <div className="relative w-20 h-20 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+          {isLoading ? (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
+              <RefreshCw size={16} className="text-pink-400 animate-spin" />
             </div>
-          </div>
-        ) : (
-          <img
-            src={PREVIEW_IMAGES[currentImage]}
-            alt="AI 生成预览"
-            className="w-full h-full object-cover"
-          />
-        )}
-        
-        {/* 浮动提示词标签 */}
-        <div className="absolute bottom-3 left-3 right-3">
-          <div className="bg-white/90 backdrop-blur-sm rounded-xl p-2.5 shadow-sm">
-            <p className="text-[10px] text-gray-400 mb-1">当前提示词</p>
-            <p className="text-xs text-gray-700 line-clamp-2 font-mono leading-relaxed">
-              {prompt || '暂无提示词'}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* 操作栏 */}
-      <div className="p-3 flex items-center justify-between bg-white">
-        <div className="flex flex-wrap gap-1">
-          {tags.slice(0, 3).map((tag, i) => (
-            <span key={i} className="text-[10px] px-1.5 py-0.5 rounded bg-pink-50 text-pink-600">
-              {tag}
-            </span>
-          ))}
-          {tags.length > 3 && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
-              +{tags.length - 3}
-            </span>
+          ) : (
+            <img
+              src={PREVIEW_IMAGES[currentImage]}
+              alt="预览"
+              className="w-full h-full object-cover"
+            />
           )}
         </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={handleRefresh}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-colors"
-            title="刷新预览"
-          >
-            <RefreshCw size={14} />
-          </button>
-          <button
-            onClick={handleDownload}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-colors"
-            title="下载图片"
-          >
-            <Download size={14} />
-          </button>
+
+        {/* 内容区 */}
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] text-gray-400 mb-1">当前提示词</p>
+          <p className="text-[11px] text-gray-700 line-clamp-2 font-mono leading-relaxed mb-2">
+            {prompt || '暂无提示词'}
+          </p>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex flex-wrap gap-1">
+              {tags.slice(0, 2).map((tag, i) => (
+                <span key={i} className="text-[9px] px-1 py-0.5 rounded bg-pink-50 text-pink-600">
+                  {tag}
+                </span>
+              ))}
+              {tags.length > 2 && (
+                <span className="text-[9px] px-1 py-0.5 rounded bg-gray-100 text-gray-500">
+                  +{tags.length - 2}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={handleRefresh}
+                className="p-1 rounded text-gray-400 hover:text-pink-500 transition-colors"
+                title="刷新"
+              >
+                <RefreshCw size={12} />
+              </button>
+              <button
+                onClick={handleDownload}
+                className="p-1 rounded text-gray-400 hover:text-pink-500 transition-colors"
+                title="下载"
+              >
+                <Download size={12} />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

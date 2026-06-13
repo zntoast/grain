@@ -247,8 +247,8 @@ export const GroupPage: React.FC = () => {
           <section className="p-6 pb-4">
             <h3 className="text-sm font-semibold text-gray-900 mb-3 section-title">效果预览</h3>
             <ImagePreview
-              prompt={currentTags.map((t) => t!.en).join(', ')}
-              tags={currentTags.map((t) => t!.zh)}
+              prompt={[...currentTags.map((t) => t!.en), ...customLines].join(', ')}
+              tags={[...currentTags.map((t) => t!.zh), ...customLines]}
             />
           </section>
 

@@ -7,6 +7,7 @@ import {
   Plus,
   ChevronDown,
   X,
+  ArrowLeft,
 } from 'lucide-react';
 import {
   DndContext,
@@ -29,6 +30,17 @@ import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { ImagePreview } from '../components/ImagePreview';
 import { CATEGORIES } from '../types';
+
+// 自定义分类列表
+const CUSTOM_CATEGORIES_KEY = 'grain_custom_categories';
+const getCustomCategories = (): string[] => {
+  try {
+    const saved = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
 
 // Sortable Tag Item
 interface SortableTagItemProps {
@@ -88,6 +100,7 @@ export const GroupPage: React.FC = () => {
     unlinkTagFromGroup,
     reorderTagsInGroup,
     deleteGroup,
+    updateGroup,
   } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -100,10 +113,25 @@ export const GroupPage: React.FC = () => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
+  const customCategories = getCustomCategories();
+
+  // 所有可用分类（内置 + 自定义）
+  const allCategories = useMemo(() => {
+    return [...CATEGORIES, ...customCategories];
+  }, []);
 
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
+
+  // 图片 URL 状态
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>(group?.imageUrl || '');
+
+  // 当词组 ID 变化时，重新初始化图片 URL
+  React.useEffect(() => {
+    if (group) {
+      setPreviewImageUrl(group.imageUrl || '');
+    }
+  }, [groupId]);
 
   // 当前词组的 Tag 列表
   const currentTagIds = groupId ? groupTags[groupId] || [] : [];
@@ -164,6 +192,14 @@ export const GroupPage: React.FC = () => {
     }
   };
 
+  // 处理图片变化，保存到词组数据
+  const handleImageChange = (url: string) => {
+    setPreviewImageUrl(url);
+    if (groupId) {
+      updateGroup(groupId, { imageUrl: url });
+    }
+  };
+
   // 复制全部提示词（包含自定义）
   const handleCopyAll = () => {
     const tagWords = currentTags.map((t) => t!.en);
@@ -217,9 +253,18 @@ export const GroupPage: React.FC = () => {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <h1 className="text-lg font-semibold text-gray-900">{group.name}</h1>
-              <span className="text-sm text-gray-400">({currentTags.length})</span>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="返回"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">{group.name}</h1>
+                <span className="text-sm text-gray-400">({currentTags.length} 个提示词)</span>
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <Button size="sm" onClick={handleCopyAll}>
@@ -252,7 +297,7 @@ export const GroupPage: React.FC = () => {
                 <h3 className="text-sm font-semibold text-gray-900 mb-3 section-title">效果预览</h3>
                 <ImagePreview
                   imageUrl={previewImageUrl}
-                  onImageChange={setPreviewImageUrl}
+                  onImageChange={handleImageChange}
                 />
               </div>
 
@@ -265,27 +310,9 @@ export const GroupPage: React.FC = () => {
                     复制
                   </Button>
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 h-full">
-                  {currentTags.length > 0 || customLines.length > 0 ? (
-                    <div className="flex flex-wrap gap-1.5">
-                      {currentTags.map((tag) => (
-                        <span key={tag!.id} className="text-xs px-2 py-1 rounded-lg bg-white border border-pink-100 text-gray-700 shadow-sm">
-                          {tag!.en}
-                        </span>
-                      ))}
-                      {customLines.map((line, i) => (
-                        <span key={`custom-${i}`} className="text-xs px-2 py-1 rounded-lg bg-pink-50 border border-pink-200 text-pink-700 italic">
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-400 text-center py-8">暂无提示词</p>
-                  )}
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 font-mono text-xs text-gray-700 leading-relaxed h-full overflow-auto">
+                  {[...currentTags.map((t) => t!.en), ...customLines].join(', ') || '暂无提示词'}
                 </div>
-                <p className="text-[10px] text-gray-400 mt-2">
-                  共 {[...currentTags.map((t) => t!.en), ...customLines].length} 个提示词
-                </p>
               </div>
             </div>
           </section>
@@ -393,7 +420,7 @@ export const GroupPage: React.FC = () => {
 
             {/* 分类筛选 */}
             <div className="flex items-center gap-2 flex-wrap mb-5">
-              {CATEGORIES.map((cat) => (
+              {allCategories.map((cat) => (
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}

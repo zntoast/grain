@@ -14,9 +14,13 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      onImageChange?.(url);
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64 = event.target?.result as string;
+        setImageUrl(base64);
+        onImageChange?.(base64);
+      };
+      reader.readAsDataURL(file);
     }
   };
 

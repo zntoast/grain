@@ -14,6 +14,7 @@ export interface Group {
   desc: string;
   color: string;
   tags?: string; // 用于显示的数量字符串
+  imageUrl?: string; // 预览图片地址
 }
 
 // Tag（提示词）
@@ -64,6 +65,7 @@ export interface GrainDataSnapshot {
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  customCategories?: string[];
 }
 
 // 分类列表

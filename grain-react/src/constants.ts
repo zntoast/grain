@@ -3,20 +3,23 @@ import { NOVELAI_TAGS } from './data/novelai-tags';
 
 // 默认工作空间
 export const DEFAULT_WORKSPACES: Workspace[] = [
-  { id: 'ws_main', name: '我的提示词库', desc: 'AI 绘画提示词管理主库，涵盖人物/产品/插画等分类。', color: '255', createdAt: '2026-01-15' },
-  { id: 'ws_design', name: '品牌设计素材', desc: '品牌 VI 相关提示词，专人专用。', color: '170', createdAt: '2026-03-02' },
-  { id: 'ws_team', name: '团队共享库', desc: '团队协作提示词池，所有人可编辑。', color: '145', createdAt: '2026-04-10' },
+  { id: 'ws_main', name: '动漫创作', desc: '日式动漫、二次元风格，适合角色立绘、插画创作。', color: '300', createdAt: '2026-01-15' },
+  { id: 'ws_photo', name: '写实摄影', desc: '真实感、摄影风格，适合人像、产品、风景拍摄。', color: '255', createdAt: '2026-03-02' },
+  { id: 'ws_concept', name: '概念设计', desc: '科幻、奇幻、艺术风格，适合概念原画、游戏美术。', color: '170', createdAt: '2026-04-10' },
 ];
 
 // 默认词组
 export const DEFAULT_GROUPS: Group[] = [
-  { id: 'people', name: '人物肖像', desc: '角色、构图、姿势相关提示词，用于人物生成。', color: '255' },
-  { id: 'product', name: '产品摄影', desc: '产品展示、电商场景等提示词。', color: '170' },
-  { id: 'illustration', name: '插画风格', desc: '水彩、扁平、像素、赛璐珞等插画风格提示词。', color: '145' },
-  { id: 'architecture', name: '建筑空间', desc: '建筑、街道、风景等空间类提示词。', color: '45' },
-  { id: 'concept', name: '概念艺术', desc: '科幻、赛博朋克、艺术风格提示词。', color: '28' },
-  { id: 'anime', name: '动漫风格', desc: '日式动漫、二次元风格提示词。', color: '300' },
-  { id: 'food', name: '美食摄影', desc: '美食拍摄、质感特写提示词。', color: '200' },
+  { id: 'character', name: '角色设计', desc: '人物外观、服装、发型、表情等角色相关提示词。', color: '300' },
+  { id: 'scene', name: '场景环境', desc: '背景、地点、天气、时间等环境场景提示词。', color: '255' },
+  { id: 'style', name: '画风风格', desc: '动漫、写实、水彩、油画等绘画风格提示词。', color: '170' },
+  { id: 'lighting', name: '光影效果', desc: '自然光、人工光、氛围光等光影相关提示词。', color: '45' },
+  { id: 'composition', name: '构图视角', desc: '特写、全景、俯视、仰视等构图方式提示词。', color: '28' },
+  { id: 'quality', name: '画质增强', desc: '高清、细节、质感等提升画面质量的提示词。', color: '200' },
+  { id: 'pose', name: '姿势动作', desc: '站姿、坐姿、手势、动态等姿势动作提示词。', color: '150' },
+  { id: 'clothing', name: '服装搭配', desc: '校服、礼服、运动装、古装等服装相关提示词。', color: '120' },
+  { id: 'expression', name: '表情情绪', desc: '微笑、哭泣、生气、害羞等表情情绪提示词。', color: '320' },
+  { id: 'effect', name: '特效氛围', desc: '粒子、光效、魔法、科幻等视觉特效提示词。', color: '80' },
 ];
 
 // 默认 Tags
@@ -271,37 +274,40 @@ export const DEFAULT_TAGS: Tag[] = [
 // 默认工作空间-词组关联
 export const DEFAULT_WORKSPACE_GROUPS: WorkspaceGroups = {
   ws_main: [
-    { groupId: 'people', type: 'positive' },
-    { groupId: 'product', type: 'positive' },
-    { groupId: 'architecture', type: 'negative' },
-    { groupId: 'illustration', type: 'positive' },
-    { groupId: 'concept', type: 'positive' },
+    { groupId: 'character', type: 'positive' },
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'expression', type: 'positive' },
+    { groupId: 'clothing', type: 'positive' },
   ],
-  ws_design: [
-    { groupId: 'product', type: 'positive' },
-    { groupId: 'anime', type: 'positive' },
-    { groupId: 'food', type: 'positive' },
+  ws_photo: [
+    { groupId: 'character', type: 'positive' },
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'composition', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
   ],
-  ws_team: [
-    { groupId: 'people', type: 'positive' },
-    { groupId: 'concept', type: 'positive' },
-    { groupId: 'anime', type: 'positive' },
-    { groupId: 'food', type: 'positive' },
-    { groupId: 'product', type: 'positive' },
-    { groupId: 'illustration', type: 'positive' },
-    { groupId: 'architecture', type: 'negative' },
+  ws_concept: [
+    { groupId: 'character', type: 'positive' },
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'effect', type: 'positive' },
   ],
 };
 
 // 默认词组-Tag关联
 export const DEFAULT_GROUP_TAGS: GroupTags = {
-  people: ['t01', 't02', 't03', 't04', 't05', 't13', 't14', 't15', 't16'],
-  product: ['t06', 't07', 't09', 't11', 't17', 't27'],
-  illustration: ['t08', 't10', 't11', 't12', 't09'],
-  architecture: ['t17', 't27', 't28', 't29', 't31', 't32'],
-  concept: ['t10', 't18', 't20', 't22', 't35'],
-  anime: ['t03', 't04', 't06', 't12', 't08'],
-  food: ['t13', 't19', 't23', 't24', 't27', 't28', 't33'],
+  character: ['na059', 'na060', 'na062', 'na065', 'na066', 'na067', 'na068', 'na069'],
+  scene: ['na027', 'na028', 'na029', 'na035', 'na036', 'na039', 'na041', 'na043'],
+  style: ['na045', 'na046', 'na048', 'na049', 'na053', 'na056', 'na057', 'na058'],
+  lighting: ['na010', 'na011', 'na012', 'na018', 'na019', 'na020', 'na021', 'na023'],
+  composition: ['na766', 'na767', 'na768', 'na769', 'na770', 'na771', 'na772', 'na773'],
+  quality: ['na001', 'na002', 'na005', 'na006', 'na007', 'na008', 'na009', 'na003'],
+  pose: ['na909', 'na910', 'na911', 'na912', 'na914', 'na915', 'na916', 'na920'],
+  clothing: ['na303', 'na304', 'na305', 'na306', 'na307', 'na314', 'na317', 'na318'],
+  expression: ['na544', 'na545', 'na546', 'na557', 'na561', 'na564', 'na581', 'na584'],
+  effect: ['na794', 'na795', 'na796', 'na797', 'na802', 'na803', 'na807', 'na808'],
 };
 
 // 主题色选项

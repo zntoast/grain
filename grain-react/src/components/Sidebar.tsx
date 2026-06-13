@@ -330,17 +330,11 @@ export const Sidebar: React.FC = () => {
           </section>
 
           <section className="nav-section-tag">
-            <button onClick={() => toggleSection('tags')} className="w-full flex items-center justify-between px-2 py-1.5 text-[12px] font-semibold sidebar-section-title hover:text-gray-800 rounded-lg transition-colors" aria-expanded={openSections.tags}>
-              <span className="flex items-center gap-2"><Tag size={14} className="nav-icon sidebar-section-icon" />提示词</span>
-              <ChevronRight size={14} className={`text-gray-400 transition-transform ${openSections.tags ? 'rotate-90' : ''}`} />
-            </button>
-            {openSections.tags && (
-              <Link to="/tags" className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] leading-5 transition-colors sidebar-link ${isActive('/tags') || location.pathname.startsWith('/tag') ? 'nav-active sidebar-link-active font-semibold' : ''}`}>
-                <Tag size={14} className="text-gray-400 flex-shrink-0" />
-                <span className="truncate flex-1">全部提示词</span>
-                <span className="sidebar-dot" />
-              </Link>
-            )}
+            <Link to="/tags" className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] leading-5 transition-colors sidebar-link ${isActive('/tags') || location.pathname.startsWith('/tag') ? 'nav-active sidebar-link-active font-semibold' : ''}`}>
+              <Tag size={14} className="nav-icon" />
+              <span className="truncate">提示词管理</span>
+              <span className="sidebar-dot" />
+            </Link>
           </section>
         </nav>
 

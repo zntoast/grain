@@ -114,6 +114,12 @@ export const WorkspacePage: React.FC = () => {
       .filter(Boolean);
   };
 
+  // 获取词组的图片 URL
+  const getGroupImageUrl = (groupId: string) => {
+    const group = groups.find((g) => g.id === groupId);
+    return group?.imageUrl || '';
+  };
+
   // 复制全部提示词
   const handleCopyAll = () => {
     const text = allTags.map((t) => t!.en).join(', ');
@@ -490,27 +496,32 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'positive').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'positive').map((item) => (
-                      <GroupCard
-                        key={item.group!.id}
-                        group={item.group!}
-                        type={item.type}
-                        tagCount={getGroupTags(item.group!.id).length}
-                        isDragging={draggedGroupId === item.group!.id}
-                        isDropOver={dropOverGroupId === item.group!.id}
-                        layoutMode={layoutMode}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onMouseEnter={setHoveredGroupId}
-                        onMouseLeave={() => setHoveredGroupId(null)}
-                        onEdit={handleEditGroup}
-                        onChangeType={handleChangeGroupType}
-                        onUnlink={handleUnlinkGroup}
-                      />
-                    ))
+                    filteredGroups.filter(g => g.type === 'positive').map((item) => {
+                      const groupTagsList = getGroupTags(item.group!.id);
+                      return (
+                        <GroupCard
+                          key={item.group!.id}
+                          group={item.group!}
+                          type={item.type}
+                          tagCount={groupTagsList.length}
+                          tags={groupTagsList.map((t) => t!.en)}
+                          previewImageUrl={getGroupImageUrl(item.group!.id)}
+                          isDragging={draggedGroupId === item.group!.id}
+                          isDropOver={dropOverGroupId === item.group!.id}
+                          layoutMode={layoutMode}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onMouseEnter={setHoveredGroupId}
+                          onMouseLeave={() => setHoveredGroupId(null)}
+                          onEdit={handleEditGroup}
+                          onChangeType={handleChangeGroupType}
+                          onUnlink={handleUnlinkGroup}
+                        />
+                      );
+                    })
                   ) : (
                     <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                       <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
@@ -567,27 +578,32 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'negative').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'negative').map((item) => (
-                      <GroupCard
-                        key={item.group!.id}
-                        group={item.group!}
-                        type={item.type}
-                        tagCount={getGroupTags(item.group!.id).length}
-                        isDragging={draggedGroupId === item.group!.id}
-                        isDropOver={dropOverGroupId === item.group!.id}
-                        layoutMode={layoutMode}
-                        onDragStart={handleDragStart}
-                        onDragEnd={handleDragEnd}
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onMouseEnter={setHoveredGroupId}
-                        onMouseLeave={() => setHoveredGroupId(null)}
-                        onEdit={handleEditGroup}
-                        onChangeType={handleChangeGroupType}
-                        onUnlink={handleUnlinkGroup}
-                      />
-                    ))
+                    filteredGroups.filter(g => g.type === 'negative').map((item) => {
+                      const groupTagsList = getGroupTags(item.group!.id);
+                      return (
+                        <GroupCard
+                          key={item.group!.id}
+                          group={item.group!}
+                          type={item.type}
+                          tagCount={groupTagsList.length}
+                          tags={groupTagsList.map((t) => t!.en)}
+                          previewImageUrl={getGroupImageUrl(item.group!.id)}
+                          isDragging={draggedGroupId === item.group!.id}
+                          isDropOver={dropOverGroupId === item.group!.id}
+                          layoutMode={layoutMode}
+                          onDragStart={handleDragStart}
+                          onDragEnd={handleDragEnd}
+                          onDragOver={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDrop}
+                          onMouseEnter={setHoveredGroupId}
+                          onMouseLeave={() => setHoveredGroupId(null)}
+                          onEdit={handleEditGroup}
+                          onChangeType={handleChangeGroupType}
+                          onUnlink={handleUnlinkGroup}
+                        />
+                      );
+                    })
                   ) : (
                     <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                       <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
@@ -654,27 +670,32 @@ export const WorkspacePage: React.FC = () => {
 
               <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                 {filteredGroups.length > 0 ? (
-                  filteredGroups.map((item) => (
-                    <GroupCard
-                      key={item.group!.id}
-                      group={item.group!}
-                      type={item.type}
-                      tagCount={getGroupTags(item.group!.id).length}
-                      isDragging={draggedGroupId === item.group!.id}
-                      isDropOver={dropOverGroupId === item.group!.id}
-                      layoutMode={layoutMode}
-                      onDragStart={handleDragStart}
-                      onDragEnd={handleDragEnd}
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onMouseEnter={setHoveredGroupId}
-                      onMouseLeave={() => setHoveredGroupId(null)}
-                      onEdit={handleEditGroup}
-                      onChangeType={handleChangeGroupType}
-                      onUnlink={handleUnlinkGroup}
-                    />
-                  ))
+                  filteredGroups.map((item) => {
+                    const groupTagsList = getGroupTags(item.group!.id);
+                    return (
+                      <GroupCard
+                        key={item.group!.id}
+                        group={item.group!}
+                        type={item.type}
+                        tagCount={groupTagsList.length}
+                        tags={groupTagsList.map((t) => t!.en)}
+                        previewImageUrl={getGroupImageUrl(item.group!.id)}
+                        isDragging={draggedGroupId === item.group!.id}
+                        isDropOver={dropOverGroupId === item.group!.id}
+                        layoutMode={layoutMode}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onMouseEnter={setHoveredGroupId}
+                        onMouseLeave={() => setHoveredGroupId(null)}
+                        onEdit={handleEditGroup}
+                        onChangeType={handleChangeGroupType}
+                        onUnlink={handleUnlinkGroup}
+                      />
+                    );
+                  })
                 ) : (
                   <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                     <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">

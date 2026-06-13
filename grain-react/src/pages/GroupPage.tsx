@@ -246,9 +246,9 @@ export const GroupPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto">
           {/* 图片预览 + 当前提示词 - 左右布局 */}
           <section className="p-6 pb-4">
-            <div className="grid grid-cols-2 gap-4">
-              {/* 左侧 - 图片预览 */}
-              <div>
+            <div className="flex gap-4">
+              {/* 左侧 - 图片预览（缩小） */}
+              <div className="w-1/3 flex-shrink-0">
                 <h3 className="text-sm font-semibold text-gray-900 mb-3 section-title">效果预览</h3>
                 <ImagePreview
                   imageUrl={previewImageUrl}
@@ -257,7 +257,7 @@ export const GroupPage: React.FC = () => {
               </div>
 
               {/* 右侧 - 当前提示词 */}
-              <div>
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-gray-900 section-title">当前提示词</h3>
                   <Button variant="ghost" size="sm" onClick={handleCopyAll}>
@@ -265,7 +265,7 @@ export const GroupPage: React.FC = () => {
                     复制
                   </Button>
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 min-h-[200px]">
+                <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 h-full">
                   {currentTags.length > 0 || customLines.length > 0 ? (
                     <div className="flex flex-wrap gap-1.5">
                       {currentTags.map((tag) => (

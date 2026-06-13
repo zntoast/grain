@@ -31,8 +31,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
   return (
     <>
       <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-pink-100">
-        {/* 16:9 比例容器 - 高度减半 */}
-        <div className="relative w-full" style={{ paddingBottom: '28%' }}>
+        {/* 16:9 比例容器 - 固定高度 */}
+        <div className="relative w-full h-36">
           {imageUrl ? (
             <>
               <img

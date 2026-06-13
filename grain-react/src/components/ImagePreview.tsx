@@ -1,90 +1,83 @@
-import React, { useState } from 'react';
-import { RefreshCw, Download, X, ZoomIn } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, X, ZoomIn } from 'lucide-react';
 
 interface ImagePreviewProps {
-  prompt?: string;
-  tags?: string[];
+  imageUrl?: string;
+  onImageChange?: (url: string) => void;
 }
 
-const PREVIEW_IMAGES = [
-  'https://picsum.photos/seed/grain1/800/450',
-  'https://picsum.photos/seed/grain2/800/450',
-  'https://picsum.photos/seed/grain3/800/450',
-  'https://picsum.photos/seed/grain4/800/450',
-  'https://picsum.photos/seed/grain5/800/450',
-  'https://picsum.photos/seed/grain6/800/450',
-];
-
-export const ImagePreview: React.FC<ImagePreviewProps> = () => {
-  const [currentImage, setCurrentImage] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
+  const [imageUrl, setImageUrl] = useState(initialUrl || '');
   const [showModal, setShowModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleRefresh = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setCurrentImage((prev) => (prev + 1) % PREVIEW_IMAGES.length);
-      setIsLoading(false);
-    }, 800);
+  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+      onImageChange?.(url);
+    }
   };
 
-  const handleDownload = () => {
-    const link = document.createElement('a');
-    link.href = PREVIEW_IMAGES[currentImage];
-    link.download = `grain-preview-${Date.now()}.jpg`;
-    link.target = '_blank';
-    link.click();
+  const handleRemove = () => {
+    setImageUrl('');
+    onImageChange?.('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
     <>
       <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-pink-100">
-        {/* 16:9 比例容器 */}
-        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-          {isLoading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-white/80">
-              <RefreshCw size={20} className="text-pink-400 animate-spin" />
-            </div>
-          ) : (
+        {/* 16:9 比例容器 - 高度减半 */}
+        <div className="relative w-full" style={{ paddingBottom: '28%' }}>
+          {imageUrl ? (
             <>
               <img
-                src={PREVIEW_IMAGES[currentImage]}
+                src={imageUrl}
                 alt="预览"
                 className="absolute inset-0 w-full h-full object-cover cursor-pointer"
                 onClick={() => setShowModal(true)}
               />
-              {/* 悬停遮罩 */}
               <div 
                 className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100"
                 onClick={() => setShowModal(true)}
               >
-                <ZoomIn size={24} className="text-white" />
+                <ZoomIn size={20} className="text-white" />
               </div>
+              {/* 删除按钮 */}
+              <button
+                onClick={handleRemove}
+                className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-red-500 transition-colors backdrop-blur-sm"
+                title="移除图片"
+              >
+                <X size={14} />
+              </button>
             </>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="absolute inset-0 flex flex-col items-center justify-center hover:bg-pink-50/50 transition-colors"
+            >
+              <Upload size={20} className="text-pink-400 mb-1" />
+              <span className="text-xs text-gray-500">上传预览图</span>
+            </button>
           )}
         </div>
 
-        {/* 操作按钮 */}
-        <div className="absolute top-2 right-2 flex items-center gap-1">
-          <button
-            onClick={handleRefresh}
-            className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-pink-500 transition-colors backdrop-blur-sm"
-            title="刷新"
-          >
-            <RefreshCw size={14} />
-          </button>
-          <button
-            onClick={handleDownload}
-            className="p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-pink-500 transition-colors backdrop-blur-sm"
-            title="下载"
-          >
-            <Download size={14} />
-          </button>
-        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleUpload}
+        />
       </div>
 
       {/* 放大预览弹窗 */}
-      {showModal && (
+      {showModal && imageUrl && (
         <div 
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
           onClick={() => setShowModal(false)}
@@ -96,7 +89,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = () => {
             <X size={20} />
           </button>
           <img
-            src={PREVIEW_IMAGES[currentImage]}
+            src={imageUrl}
             alt="预览大图"
             className="max-w-full max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}

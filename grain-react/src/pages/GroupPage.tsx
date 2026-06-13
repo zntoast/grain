@@ -100,6 +100,7 @@ export const GroupPage: React.FC = () => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>('');
 
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
@@ -250,8 +251,8 @@ export const GroupPage: React.FC = () => {
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-3 section-title">效果预览</h3>
                 <ImagePreview
-                  prompt={[...currentTags.map((t) => t!.en), ...customLines].join(', ')}
-                  tags={[...currentTags.map((t) => t!.zh), ...customLines]}
+                  imageUrl={previewImageUrl}
+                  onImageChange={setPreviewImageUrl}
                 />
               </div>
 

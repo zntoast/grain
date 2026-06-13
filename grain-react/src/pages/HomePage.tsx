@@ -1,190 +1,115 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, Tag, ArrowRight } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Tag, ArrowRight, Sparkles } from 'lucide-react';
 import { useStore } from '../store';
 
 export const HomePage: React.FC = () => {
   const { workspaces, groups, tags } = useStore();
 
+  const features = [
+    {
+      icon: LayoutDashboard,
+      title: '工作空间',
+      desc: '按项目组织提示词，正向/负面分组管理',
+      link: `/workspace/${workspaces[0]?.id || 'ws_main'}`,
+      color: 'accent',
+      count: workspaces.length,
+    },
+    {
+      icon: FolderOpen,
+      title: '词组',
+      desc: '灵活的提示词集合，支持多工作空间复用',
+      link: `/group/${groups[0]?.id || 'people'}`,
+      color: 'green',
+      count: groups.length,
+    },
+    {
+      icon: Tag,
+      title: '提示词库',
+      desc: '230+ 内置提示词，覆盖 10 个分类',
+      link: '/tags',
+      color: 'orange',
+      count: tags.length,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#faf9f7]">
       {/* Hero */}
-      <div className="bg-white border-b border-gray-200 py-16 px-8 text-center">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/10 text-accent mb-4">
-          <LayoutDashboard size={24} />
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">提示词管理工具</h1>
-        <p className="text-gray-500 max-w-md mx-auto">
-          工作空间 — 词组 — 提示词解耦关联 · 多对多多级关系
-        </p>
-        <div className="flex justify-center gap-2 mt-4">
-          <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent">AI 绘画</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent">Prompt 管理</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent">中间表关联</span>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent">多对多</span>
-        </div>
-      </div>
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/[0.03] via-transparent to-purple-500/[0.03]" />
+        <div className="relative max-w-5xl mx-auto px-8 pt-20 pb-16">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center shadow-sm">
+              <Sparkles size={20} className="text-white" />
+            </div>
+            <span className="text-sm font-medium text-gray-400 tracking-wide uppercase">Grain</span>
+          </div>
+          
+          <h1 className="text-5xl font-bold text-gray-900 tracking-tight leading-tight mb-4">
+            AI 绘画<br />
+            <span className="text-accent">提示词管理</span>
+          </h1>
+          
+          <p className="text-lg text-gray-500 max-w-lg leading-relaxed mb-8">
+            将零散的提示词组织为结构化的工作空间。<br />
+            灵活关联，一键复制，高效创作。
+          </p>
 
-      {/* Content */}
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Concept Cards */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-workspace">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-workspace mb-3">
-              <LayoutDashboard size={20} />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">工作空间</h3>
-            <p className="text-xs text-gray-500">
-              独立实体，通过中间表 <code className="text-[10px] font-mono">workspace_groups</code> 关联到组
-            </p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-group">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-group mb-3">
-              <FolderOpen size={20} />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">词组</h3>
-            <p className="text-xs text-gray-500">
-              独立实体，可关联到多个工作空间，通过 <code className="text-[10px] font-mono">group_tags</code> 关联提示词
-            </p>
-          </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-5 text-center card-hover card-accent-tag">
-            <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl icon-bg-tag mb-3">
-              <Tag size={20} />
-            </div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-1">Tag（提示词）</h3>
-            <p className="text-xs text-gray-500">
-              包含 <code className="text-[10px] font-mono">en</code>、<code className="text-[10px] font-mono">zh</code>、<code className="text-[10px] font-mono">category</code>。独立实体，可加入多个组
-            </p>
-          </div>
-        </div>
-
-        {/* Junction Model */}
-        <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4 text-center">关联模型 — 中间表解耦</h3>
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <div className="px-4 py-2.5 rounded-lg bg-accent/10 text-accent font-semibold text-sm">
-              工作空间
-            </div>
-            <div className="flex items-center gap-1.5 px-3 text-xs text-gray-400">
-              <div className="w-8 h-px bg-gray-200" />
-              <span>M:N</span>
-              <div className="w-8 h-px bg-gray-200" />
-            </div>
-            <div className="px-3 py-2 border-2 border-dashed border-gray-200 rounded-lg text-xs text-gray-400 font-mono">
-              workspace_groups
-            </div>
-            <div className="flex items-center gap-1.5 px-3 text-xs text-gray-400">
-              <div className="w-8 h-px bg-gray-200" />
-              <span>M:N</span>
-              <div className="w-8 h-px bg-gray-200" />
-            </div>
-            <div className="px-4 py-2.5 rounded-lg bg-green-100 text-green-700 font-semibold text-sm">
-              词组
-            </div>
-            <div className="flex items-center gap-1.5 px-3 text-xs text-gray-400">
-              <div className="w-8 h-px bg-gray-200" />
-              <span>M:N</span>
-              <div className="w-8 h-px bg-gray-200" />
-            </div>
-            <div className="px-3 py-2 border-2 border-dashed border-gray-200 rounded-lg text-xs text-gray-400 font-mono">
-              group_tags
-            </div>
-            <div className="flex items-center gap-1.5 px-3 text-xs text-gray-400">
-              <div className="w-8 h-px bg-gray-200" />
-              <span>M:N</span>
-              <div className="w-8 h-px bg-gray-200" />
-            </div>
-            <div className="px-4 py-2.5 rounded-lg bg-orange-100 text-orange-700 font-semibold text-sm">
-              Tag（提示词）
-            </div>
-          </div>
-        </div>
-
-        {/* Page Cards */}
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">原型页面</h2>
-        <div className="grid grid-cols-3 gap-4 mb-8">
           <Link
             to={`/workspace/${workspaces[0]?.id || 'ws_main'}`}
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-workspace group"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors"
           >
-            <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
-              <LayoutDashboard size={48} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">工作空间概览</h3>
-              <p className="text-xs text-gray-500 mb-2">
-                多标签切换、新建工作空间。组分为正向词组/负面词组两类，各组 Tag 单词汇总展示，支持一键复制全部。
-              </p>
-              <span className="text-xs text-accent font-medium flex items-center gap-1">
-                打开页面 <ArrowRight size={12} />
-              </span>
-            </div>
+            开始使用
+            <ArrowRight size={16} />
           </Link>
-
-          <Link
-            to={`/group/${groups[0]?.id || 'people'}`}
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-group group"
-          >
-            <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
-              <FolderOpen size={48} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">词组详情</h3>
-              <p className="text-xs text-gray-500 mb-2">
-                侧边栏支持目录和词组管理、按分类筛选提示词、双栏布局：左栏已选提示词+自定义输入，右栏按分类分组选择器。
-              </p>
-              <span className="text-xs text-accent font-medium flex items-center gap-1">
-                打开页面 <ArrowRight size={12} />
-              </span>
-            </div>
-          </Link>
-
-          <Link
-            to="/tags"
-            className="bg-white border border-gray-200 rounded-xl overflow-hidden card-hover card-accent-tag group"
-          >
-            <div className="h-44 bg-gray-50 flex items-center justify-center border-b border-gray-200">
-              <Tag size={48} className="text-gray-300" />
-            </div>
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 mb-1">Tag 编辑器</h3>
-              <p className="text-xs text-gray-500 mb-2">
-                编辑 Tag 英文单词、中文释义、分类归属、多组关联管理。每个 Tag 包含 en/zh/category 三个字段。
-              </p>
-              <span className="text-xs text-accent font-medium flex items-center gap-1">
-                打开页面 <ArrowRight size={12} />
-              </span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Stats */}
-        <div className="bg-gradient-to-r from-accent/5 to-purple-50 rounded-xl p-5 border border-accent/10">
-          <p className="text-sm text-gray-700">
-            <strong>设计说明</strong> · 三个实体完全解耦，通过中间表{' '}
-            <code className="text-xs font-mono px-1 py-0.5 rounded bg-white/80">workspace_groups</code> 和{' '}
-            <code className="text-xs font-mono px-1 py-0.5 rounded bg-white/80">group_tags</code> 实现多对多关联。侧边栏分三区，每页展示关联上下文并支持动态建立/解除关系。
-          </p>
-          <div className="flex gap-6 mt-4 text-sm">
-            <div>
-              <span className="text-2xl font-bold text-accent">{workspaces.length}</span>
-              <span className="text-gray-500 ml-1">工作空间</span>
-            </div>
-            <div>
-              <span className="text-2xl font-bold text-accent">{groups.length}</span>
-              <span className="text-gray-500 ml-1">词组</span>
-            </div>
-            <div>
-              <span className="text-2xl font-bold text-accent">{tags.length}</span>
-              <span className="text-gray-500 ml-1">提示词</span>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div className="text-center py-5 border-t border-gray-200 text-xs text-gray-400">
-        提示词管理工具 · 解耦关联模型 · 中间表关联 · 正向/负面词组
+      {/* Features */}
+      <div className="max-w-5xl mx-auto px-8 pb-20">
+        <div className="grid grid-cols-3 gap-5">
+          {features.map((feature) => {
+            const Icon = feature.icon;
+            const colorMap = {
+              accent: { bg: 'bg-accent/[0.08]', text: 'text-accent', border: 'border-accent/20' },
+              green: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-200' },
+              orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-200' },
+            };
+            const colors = colorMap[feature.color as keyof typeof colorMap];
+            
+            return (
+              <Link
+                key={feature.title}
+                to={feature.link}
+                className="group relative bg-white rounded-2xl border border-gray-100 p-6 hover:border-gray-200 hover:shadow-sm transition-all"
+              >
+                <div className={`w-11 h-11 rounded-xl ${colors.bg} flex items-center justify-center mb-4`}>
+                  <Icon size={20} className={colors.text} />
+                </div>
+                
+                <h3 className="text-base font-semibold text-gray-900 mb-1.5">{feature.title}</h3>
+                <p className="text-sm text-gray-500 leading-relaxed mb-4">{feature.desc}</p>
+                
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold text-gray-900">{feature.count}</span>
+                  <span className={`text-xs font-medium ${colors.text} flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity`}>
+                    打开 <ArrowRight size={12} />
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Quick Stats */}
+        <div className="mt-12 flex items-center justify-center gap-8 text-sm text-gray-400">
+          <span>{workspaces.length} 个工作空间</span>
+          <span className="w-px h-3 bg-gray-200" />
+          <span>{groups.length} 个词组</span>
+          <span className="w-px h-3 bg-gray-200" />
+          <span>{tags.length} 个提示词</span>
+        </div>
       </div>
     </div>
   );

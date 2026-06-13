@@ -173,8 +173,8 @@ export const Sidebar: React.FC = () => {
   useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
-    document.addEventListener('click', close);
-    document.addEventListener('contextmenu', close);
+    document.addEventListener('click', close, { passive: true });
+    document.addEventListener('contextmenu', close, { passive: true });
     return () => {
       document.removeEventListener('click', close);
       document.removeEventListener('contextmenu', close);

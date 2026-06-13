@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
 interface SyncMessage {
@@ -10,15 +10,22 @@ let msgId = 0;
 
 export const SyncToast: React.FC = () => {
   const [messages, setMessages] = useState<SyncMessage[]>([]);
+  const messagesLengthRef = useRef(0);
 
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ ok: boolean }>).detail;
-      console.log('[SyncToast] 收到事件:', detail.ok ? '成功' : '失败', '当前消息数:', messages.length + 1);
+      console.log('[SyncToast] 收到事件:', detail.ok ? '成功' : '失败', '当前消息数:', messagesLengthRef.current + 1);
       const id = ++msgId;
-      setMessages((prev) => [...prev.slice(-2), { id, ok: detail.ok }]);
+      setMessages((prev) => {
+        messagesLengthRef.current = prev.length + 1;
+        return [...prev.slice(-2), { id, ok: detail.ok }];
+      });
       setTimeout(() => {
-        setMessages((prev) => prev.filter((m) => m.id !== id));
+        setMessages((prev) => {
+          messagesLengthRef.current = prev.length - 1;
+          return prev.filter((m) => m.id !== id);
+        });
       }, 5000);
     };
 

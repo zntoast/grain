@@ -1,4 +1,5 @@
 import type { Workspace, Group, Tag, WorkspaceGroups, GroupTags } from './types';
+import { NOVELAI_TAGS } from './data/novelai-tags';
 
 // 默认工作空间
 export const DEFAULT_WORKSPACES: Workspace[] = [
@@ -263,6 +264,8 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: 't234', en: 'water_splash', zh: '水花', category: '特效' },
   { id: 't235', en: 'dust', zh: '尘埃', category: '特效' },
   { id: 't236', en: 'shimmer', zh: '微光', category: '特效' },
+  // NovelAI 提示词
+  ...NOVELAI_TAGS,
 ];
 
 // 默认工作空间-词组关联

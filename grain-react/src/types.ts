@@ -67,7 +67,10 @@ export interface GrainDataSnapshot {
 }
 
 // 分类列表
-export const CATEGORIES = ['角色', '画风', '构图', '光影', '画质', '场景', '色调', '表情', '姿势', '特效'] as const;
+export const CATEGORIES = [
+  '角色', '画风', '构图', '光影', '画质', '场景', '色调', '表情', '姿势', '特效',
+  '头发', '五官', '身体', '服装', '袜子', '鞋', '装饰', '颜色', '表情符号', '嘴巴', '手脚', '眼睛', '环境'
+] as const;
 export type Category = typeof CATEGORIES[number];
 
 // Store 状态

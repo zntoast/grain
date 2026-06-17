@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, ZoomIn } from 'lucide-react';
 
 interface ImagePreviewProps {
@@ -10,6 +10,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
   const [imageUrl, setImageUrl] = useState(initialUrl || '');
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 当外部 imageUrl prop 变化时同步内部状态
+  useEffect(() => {
+    setImageUrl(initialUrl || '');
+  }, [initialUrl]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

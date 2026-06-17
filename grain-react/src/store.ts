@@ -58,8 +58,11 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
       : deepClone(DEFAULT_GROUP_TAGS),
   folders: normalizeFolders(data.folders),
   groupFolderMap: data.groupFolderMap || {},
+  workspaceFolders: normalizeFolders(data.workspaceFolders),
+  workspaceFolderMap: data.workspaceFolderMap || {},
   tagIdCounter: data.tagIdCounter || 100,
   folderIdCounter: data.folderIdCounter || 10,
+  workspaceFolderIdCounter: data.workspaceFolderIdCounter || 10,
   sidebarCollapsed: data.sidebarCollapsed || false,
   currentWorkspaceId: data.currentWorkspaceId || DEFAULT_WORKSPACES[0]?.id || null,
   cursorMode: (data.cursorMode as CursorMode) || 'off',
@@ -75,8 +78,11 @@ export const useStore = create<StoreState>((set, get) => ({
   groupTags: deepClone(DEFAULT_GROUP_TAGS),
   folders: [],
   groupFolderMap: {},
+  workspaceFolders: [],
+  workspaceFolderMap: {},
   tagIdCounter: 100,
   folderIdCounter: 10,
+  workspaceFolderIdCounter: 10,
   sidebarCollapsed: false,
   currentWorkspaceId: DEFAULT_WORKSPACES[0]?.id || null,
   cursorMode: 'off' as CursorMode,
@@ -171,6 +177,73 @@ export const useStore = create<StoreState>((set, get) => ({
         groupFolderMap: newGroupFolderMap,
         workspaceGroups: newWorkspaceGroups,
       };
+    });
+    get().saveToStorage();
+  },
+
+  reorderGroups: (orderedIds) => {
+    set((state) => {
+      const idToGroup = new Map(state.groups.map((g) => [g.id, g]));
+      const reordered = orderedIds.map((id) => idToGroup.get(id)!).filter(Boolean);
+      // 保留不在 orderedIds 中的 group（安全兜底）
+      const rest = state.groups.filter((g) => !orderedIds.includes(g.id));
+      return { groups: [...reordered, ...rest] };
+    });
+    get().saveToStorage();
+  },
+
+  // 工作空间目录
+  addWorkspaceFolder: (name, parentId) => {
+    const state = get();
+    const newFolder: Folder = { id: `wsf_${state.workspaceFolderIdCounter}`, name, parentId };
+    set((s) => ({
+      workspaceFolders: [...s.workspaceFolders, newFolder],
+      workspaceFolderIdCounter: s.workspaceFolderIdCounter + 1,
+    }));
+    get().saveToStorage();
+    return newFolder;
+  },
+  updateWorkspaceFolder: (id, name) => {
+    set((s) => ({
+      workspaceFolders: s.workspaceFolders.map((f) => (f.id === id ? { ...f, name } : f)),
+    }));
+    get().saveToStorage();
+  },
+  deleteWorkspaceFolder: (id) => {
+    set((s) => {
+      const childFolderIds = new Set(
+        s.workspaceFolders.filter((f) => f.parentId === id).map((f) => f.id)
+      );
+      const newMap = { ...s.workspaceFolderMap };
+      Object.keys(newMap).forEach((wsId) => {
+        if (newMap[wsId] === id || childFolderIds.has(newMap[wsId])) {
+          delete newMap[wsId];
+        }
+      });
+      return {
+        workspaceFolders: s.workspaceFolders.filter(
+          (f) => f.id !== id && !childFolderIds.has(f.id)
+        ),
+        workspaceFolderMap: newMap,
+      };
+    });
+    get().saveToStorage();
+  },
+  moveWorkspaceToFolder: (wsId, folderId) => {
+    set((s) => {
+      const next = { ...s.workspaceFolderMap };
+      if (folderId) next[wsId] = folderId;
+      else delete next[wsId];
+      return { workspaceFolderMap: next };
+    });
+    get().saveToStorage();
+  },
+  reorderWorkspaces: (orderedIds) => {
+    set((s) => {
+      const idToWs = new Map(s.workspaces.map((w) => [w.id, w]));
+      const reordered = orderedIds.map((id) => idToWs.get(id)!).filter(Boolean);
+      const rest = s.workspaces.filter((w) => !orderedIds.includes(w.id));
+      return { workspaces: [...reordered, ...rest] };
     });
     get().saveToStorage();
   },
@@ -450,8 +523,11 @@ export const useStore = create<StoreState>((set, get) => ({
       groupTags: state.groupTags,
       folders: state.folders,
       groupFolderMap: state.groupFolderMap,
+      workspaceFolders: state.workspaceFolders,
+      workspaceFolderMap: state.workspaceFolderMap,
       tagIdCounter: state.tagIdCounter,
       folderIdCounter: state.folderIdCounter,
+      workspaceFolderIdCounter: state.workspaceFolderIdCounter,
       sidebarCollapsed: state.sidebarCollapsed,
       currentWorkspaceId: state.currentWorkspaceId,
       cursorMode: state.cursorMode,

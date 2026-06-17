@@ -59,8 +59,11 @@ export interface GrainDataSnapshot {
   groupTags: GroupTags;
   folders: Folder[];
   groupFolderMap: GroupFolderMap;
+  workspaceFolders: Folder[];
+  workspaceFolderMap: Record<string, string>;
   tagIdCounter: number;
   folderIdCounter: number;
+  workspaceFolderIdCounter: number;
   sidebarCollapsed: boolean;
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
@@ -131,7 +134,15 @@ export interface StoreState {
   updateFolder: (id: string, name: string) => void;
   deleteFolder: (id: string) => void;
   moveGroupToFolder: (groupId: string, folderId?: string) => void;
+  reorderGroups: (orderedIds: string[]) => void;
   
+  // 工作空间目录
+  addWorkspaceFolder: (name: string, parentId?: string) => Folder;
+  updateWorkspaceFolder: (id: string, name: string) => void;
+  deleteWorkspaceFolder: (id: string) => void;
+  moveWorkspaceToFolder: (workspaceId: string, folderId?: string) => void;
+  reorderWorkspaces: (orderedIds: string[]) => void;
+
   // UI
   toggleSidebar: () => void;
   setCursorMode: (mode: CursorMode) => void;

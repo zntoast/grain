@@ -47,6 +47,7 @@ export const WorkspacePage: React.FC = () => {
     workspaceId ? [workspaceId] : []
   );
   const prevWorkspaceIdRef = useRef(workspaceId);
+  const [disabledGroupIds, setDisabledGroupIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (workspaceId && workspaceId !== prevWorkspaceIdRef.current && !openWorkspaceIds.includes(workspaceId)) {
@@ -79,14 +80,14 @@ export const WorkspacePage: React.FC = () => {
   const allTags = useMemo(() => {
     const tagIds = new Set<string>();
     filteredGroups.forEach((item) => {
-      if (item.group) {
+      if (item.group && !disabledGroupIds.has(item.group.id)) {
         (groupTags[item.group.id] || []).forEach((tagId) => tagIds.add(tagId));
       }
     });
     return Array.from(tagIds)
       .map((tagId) => tags.find((t) => t.id === tagId))
       .filter(Boolean);
-  }, [filteredGroups, groupTags, tags]);
+  }, [filteredGroups, groupTags, tags, disabledGroupIds]);
 
   // 统计数据
   const stats = useMemo(() => {
@@ -191,6 +192,15 @@ export const WorkspacePage: React.FC = () => {
     if (confirm('确定解除该组与此工作空间的关联？组本身和组内提示词不会被删除。')) {
       unlinkGroupFromWorkspace(workspaceId, groupId);
     }
+  };
+
+  const handleToggleGroup = (groupId: string) => {
+    setDisabledGroupIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(groupId)) next.delete(groupId);
+      else next.add(groupId);
+      return next;
+    });
   };
 
   // 拖拽处理
@@ -360,10 +370,18 @@ export const WorkspacePage: React.FC = () => {
                 </p>
               )}
             </div>
-            <Button variant="gradient" onClick={() => setShowNewGroupModal(true)}>
-              <Plus size={14} />
-              新增词组
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setShowLinkModal(true)}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                关联词组
+              </Button>
+              <Button variant="gradient" onClick={() => setShowNewGroupModal(true)}>
+                <Plus size={14} />
+                新增词组
+              </Button>
+            </div>
           </div>
 
           {/* Stats Row */}
@@ -466,10 +484,10 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
-                    <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive').reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
+                    <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
                     <button
                       onClick={() => {
-                        const positiveTagIds = filteredGroups.filter(g => g.type === 'positive').flatMap(g => groupTags[g.group!.id] || []);
+                        const positiveTagIds = filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).flatMap(g => groupTags[g.group!.id] || []);
                         const positiveTags = positiveTagIds.map(id => tags.find(t => t.id === id)!.en).join(', ');
                         navigator.clipboard.writeText(positiveTags);
                         showToast('已复制正向提示词');
@@ -480,7 +498,7 @@ export const WorkspacePage: React.FC = () => {
                     </button>
                   </div>
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                    {filteredGroups.filter(g => g.type === 'positive').map((item) => {
+                    {filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).map((item) => {
                       const group = item.group!;
                       const groupTagsList = getGroupTags(group.id);
                       if (groupTagsList.length === 0) return null;
@@ -520,6 +538,8 @@ export const WorkspacePage: React.FC = () => {
                           onEdit={handleEditGroup}
                           onChangeType={handleChangeGroupType}
                           onUnlink={handleUnlinkGroup}
+                          disabled={disabledGroupIds.has(item.group!.id)}
+                          onToggle={() => handleToggleGroup(item.group!.id)}
                         />
                       );
                     })
@@ -548,10 +568,10 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
-                    <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative').reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
+                    <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
                     <button
                       onClick={() => {
-                        const negativeTagIds = filteredGroups.filter(g => g.type === 'negative').flatMap(g => groupTags[g.group!.id] || []);
+                        const negativeTagIds = filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).flatMap(g => groupTags[g.group!.id] || []);
                         const negativeTags = negativeTagIds.map(id => tags.find(t => t.id === id)!.en).join(', ');
                         navigator.clipboard.writeText(negativeTags);
                         showToast('已复制负面提示词');
@@ -562,7 +582,7 @@ export const WorkspacePage: React.FC = () => {
                     </button>
                   </div>
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                    {filteredGroups.filter(g => g.type === 'negative').map((item) => {
+                    {filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).map((item) => {
                       const group = item.group!;
                       const groupTagsList = getGroupTags(group.id);
                       if (groupTagsList.length === 0) return null;
@@ -602,6 +622,8 @@ export const WorkspacePage: React.FC = () => {
                           onEdit={handleEditGroup}
                           onChangeType={handleChangeGroupType}
                           onUnlink={handleUnlinkGroup}
+                          disabled={disabledGroupIds.has(item.group!.id)}
+                          onToggle={() => handleToggleGroup(item.group!.id)}
                         />
                       );
                     })
@@ -653,7 +675,7 @@ export const WorkspacePage: React.FC = () => {
                   </button>
                 </div>
                 <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                  {filteredGroups.map((item) => {
+                  {filteredGroups.filter(g => !disabledGroupIds.has(g.group!.id)).map((item) => {
                     const group = item.group!;
                     const groupTagsList = getGroupTags(group.id);
                     if (groupTagsList.length === 0) return null;
@@ -694,6 +716,8 @@ export const WorkspacePage: React.FC = () => {
                         onEdit={handleEditGroup}
                         onChangeType={handleChangeGroupType}
                         onUnlink={handleUnlinkGroup}
+                        disabled={disabledGroupIds.has(item.group!.id)}
+                        onToggle={() => handleToggleGroup(item.group!.id)}
                       />
                     );
                   })

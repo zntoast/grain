@@ -8,6 +8,8 @@ interface GroupCardProps {
   tagCount: number;
   tags?: string[];
   previewImageUrl?: string;
+  disabled?: boolean;
+  onToggle?: () => void;
   isDragging: boolean;
   isDropOver: boolean;
   layoutMode: 'grid' | 'row';
@@ -29,6 +31,8 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
   tagCount,
   tags = [],
   previewImageUrl,
+  disabled,
+  onToggle,
   isDragging,
   isDropOver,
   layoutMode,
@@ -73,7 +77,7 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
           onDrop={(e) => onDrop(e, group.id)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`flex items-center gap-3 px-4 py-2 bg-[#f4efe8] border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
+          className={`flex items-center gap-3 px-4 py-2 bg-[#f4efe8] border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
         >
           <div
             draggable
@@ -88,6 +92,15 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
           </span>
           <button onClick={() => navigate(`/group/${group.id}`)} className="text-sm font-medium text-gray-900 hover:text-accent truncate text-left">{group.name}</button>
           <span className="text-xs text-gray-400 ml-auto tabular-nums flex-shrink-0">{tagCount} 词</span>
+          {onToggle && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 flex-shrink-0 ${!disabled ? 'bg-green-400' : 'bg-gray-300'}`}
+              title={disabled ? '点击启用' : '点击禁用'}
+            >
+              <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3' : ''}`} />
+            </button>
+          )}
           <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md flex-shrink-0">
             {isPositive ? (
               <>
@@ -135,7 +148,7 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
         onDrop={(e) => onDrop(e, group.id)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`bg-[#f4efe8] border border-gray-200 rounded-xl overflow-hidden card-accent-top card-hover transition-all ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
+        className={`bg-[#f4efe8] border border-gray-200 rounded-xl overflow-hidden card-accent-top card-hover transition-all ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
       >
         <div className="px-4 pt-4 flex justify-between items-start">
           <div className="flex items-center gap-2 min-w-0">
@@ -152,7 +165,18 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
             </span>
             <button onClick={() => navigate(`/group/${group.id}`)} className="text-sm font-semibold tracking-tight truncate hover:text-accent">{group.name}</button>
           </div>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full flex-shrink-0">{tagCount} 个词</span>
+          <div className="flex items-center gap-1.5">
+            {onToggle && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggle(); }}
+                className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 ${!disabled ? 'bg-green-400' : 'bg-gray-300'}`}
+                title={disabled ? '点击启用' : '点击禁用'}
+              >
+                <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3' : ''}`} />
+              </button>
+            )}
+            <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full flex-shrink-0">{tagCount} 个词</span>
+          </div>
         </div>
         <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed line-clamp-2">{group.desc}</p>
         <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">

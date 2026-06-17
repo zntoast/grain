@@ -15,6 +15,7 @@ export interface Group {
   color: string;
   tags?: string; // 用于显示的数量字符串
   imageUrl?: string; // 预览图片地址
+  customTags?: string; // 自定义提示词，每行一个
 }
 
 // Tag（提示词）

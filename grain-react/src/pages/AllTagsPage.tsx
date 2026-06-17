@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Tag as TagIcon } from 'lucide-react';
+import { Plus, Trash2, Tag as TagIcon, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { CATEGORIES } from '../types';
@@ -21,7 +21,7 @@ const saveCustomCategories = (categories: string[]) => {
 export const AllTagsPage: React.FC = () => {
   const { toast, showToast, hideToast } = useToast();
 
-  const { tags, groups, groupTags, addTags, deleteTag } = useStore();
+  const { tags, groups, groupTags, addTags, deleteTag, updateTag } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -29,6 +29,10 @@ export const AllTagsPage: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDeletePanel, setShowDeletePanel] = useState(false);
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+  const [deleteCategoryAction, setDeleteCategoryAction] = useState<'move' | 'delete'>('move');
+  const [moveToCategory, setMoveToCategory] = useState<string>(CATEGORIES[0]);
   const [newTagsInput, setNewTagsInput] = useState('');
   const [newTagsList, setNewTagsList] = useState<Array<{ en: string; zh: string; category: string }>>([]);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -153,6 +157,44 @@ export const AllTagsPage: React.FC = () => {
     showToast(`已添加 ${newTagsList.length} 个提示词`);
   };
 
+  // 打开删除分类弹窗
+  const handleOpenDeleteCategory = (category: string) => {
+    setCategoryToDelete(category);
+    setDeleteCategoryAction('move');
+    setMoveToCategory(CATEGORIES[0]);
+    setShowDeleteCategoryModal(true);
+  };
+
+  // 执行删除分类
+  const handleDeleteCategory = () => {
+    if (!categoryToDelete) return;
+
+    const categoryTags = tags.filter(t => t.category === categoryToDelete);
+    
+    if (deleteCategoryAction === 'delete') {
+      // 删除该分类下的所有提示词
+      categoryTags.forEach(t => deleteTag(t.id));
+      showToast(`已删除分类 "${categoryToDelete}" 及其 ${categoryTags.length} 个提示词`);
+    } else {
+      // 移动到其他分类
+      categoryTags.forEach(t => updateTag(t.id, { category: moveToCategory }));
+      showToast(`已删除分类 "${categoryToDelete}"，${categoryTags.length} 个提示词已移动到 "${moveToCategory}"`);
+    }
+
+    // 从自定义分类中移除
+    const updatedCategories = customCategories.filter(c => c !== categoryToDelete);
+    setCustomCategories(updatedCategories);
+    saveCustomCategories(updatedCategories);
+
+    // 如果当前选中的是被删除的分类，清除选择
+    if (selectedCategory === categoryToDelete) {
+      setSelectedCategory(null);
+    }
+
+    setShowDeleteCategoryModal(false);
+    setCategoryToDelete(null);
+  };
+
   return (
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
@@ -210,19 +252,40 @@ export const AllTagsPage: React.FC = () => {
           >
             全部
           </button>
-          {allCategories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
-                selectedCategory === cat
-                  ? 'bg-accent text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
+          {allCategories.map((cat) => {
+            const isCustom = customCategories.includes(cat);
+            return (
+              <div
+                key={cat}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
+                  selectedCategory === cat
+                    ? 'bg-accent text-white'
+                    : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                } ${isCustom ? 'pr-1.5' : ''}`}
+              >
+                <button
+                  onClick={() => setSelectedCategory(cat)}
+                  className="flex-1"
+                >
+                  {cat}
+                </button>
+                {isCustom && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenDeleteCategory(cat);
+                    }}
+                    className={`ml-1 p-0.5 rounded hover:bg-red-100 ${
+                      selectedCategory === cat ? 'text-white hover:bg-red-400' : 'text-gray-400 hover:text-red-500'
+                    }`}
+                    title="删除分类"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         {/* Content */}
@@ -344,6 +407,68 @@ export const AllTagsPage: React.FC = () => {
               取消
             </Button>
             <Button variant="danger" onClick={handleBatchDelete}>
+              确认删除
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Category Modal */}
+      <Modal
+        isOpen={showDeleteCategoryModal}
+        onClose={() => setShowDeleteCategoryModal(false)}
+        title="删除分类"
+        description={`删除分类 "${categoryToDelete}"`}
+      >
+        <div className="space-y-4">
+          <div className="text-sm text-gray-600">
+            该分类下有 <strong>{tags.filter(t => t.category === categoryToDelete).length}</strong> 个提示词
+          </div>
+          
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="deleteAction"
+                checked={deleteCategoryAction === 'move'}
+                onChange={() => setDeleteCategoryAction('move')}
+                className="w-4 h-4 text-accent"
+              />
+              <label className="text-sm text-gray-700">移动提示词到其他分类</label>
+            </div>
+            
+            {deleteCategoryAction === 'move' && (
+              <select
+                value={moveToCategory}
+                onChange={(e) => setMoveToCategory(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+                {customCategories.filter(c => c !== categoryToDelete).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            )}
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="deleteAction"
+                checked={deleteCategoryAction === 'delete'}
+                onChange={() => setDeleteCategoryAction('delete')}
+                className="w-4 h-4 text-accent"
+              />
+              <label className="text-sm text-gray-700">同时删除该分类下的所有提示词</label>
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 pt-4">
+            <Button variant="secondary" onClick={() => setShowDeleteCategoryModal(false)}>
+              取消
+            </Button>
+            <Button variant="danger" onClick={handleDeleteCategory}>
               确认删除
             </Button>
           </div>

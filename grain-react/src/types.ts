@@ -14,6 +14,7 @@ export interface Group {
   desc: string;
   color: string;
   tags?: string; // 用于显示的数量字符串
+  imageUrl?: string; // 预览图片地址
 }
 
 // Tag（提示词）
@@ -64,34 +65,13 @@ export interface GrainDataSnapshot {
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  customCategories?: string[];
 }
 
 // 分类列表
 export const CATEGORIES = [
-  '角色',
-  '画风',
-  '构图',
-  '光影',
-  '画质',
-  '场景',
-  '色调',
-  '表情',
-  '姿势',
-  '特效',
-  '常用',
-  '环境',
-  '风格',
-  '人物&角色',
-  '头发&发饰',
-  '五官&表情',
-  '眼睛',
-  '身体',
-  '服装',
-  '袜子&腿饰',
-  '鞋',
-  '装饰',
-  '动作',
-  'Emoji',
+  '角色', '画风', '构图', '光影', '画质', '场景', '色调', '表情', '姿势', '特效',
+  '头发', '五官', '身体', '服装', '袜子', '鞋', '装饰', '颜色', '表情符号', '嘴巴', '手脚', '眼睛', '环境'
 ] as const;
 export type Category = typeof CATEGORIES[number];
 

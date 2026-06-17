@@ -433,6 +433,13 @@ export const useStore = create<StoreState>((set, get) => ({
 
   exportData: () => {
     const state = get();
+    // 读取自定义分类
+    let customCategories: string[] = [];
+    try {
+      const saved = localStorage.getItem('grain_custom_categories');
+      if (saved) customCategories = JSON.parse(saved);
+    } catch {}
+    
     return {
       version: 1,
       savedAt: new Date().toISOString(),
@@ -449,12 +456,17 @@ export const useStore = create<StoreState>((set, get) => ({
       currentWorkspaceId: state.currentWorkspaceId,
       cursorMode: state.cursorMode,
       syncInterval: state.syncInterval,
+      customCategories,
     };
   },
 
   importData: (data) => {
     const normalized = normalizeSnapshot(data);
     set(normalized);
+    // 恢复自定义分类
+    if (data.customCategories && Array.isArray(data.customCategories)) {
+      localStorage.setItem('grain_custom_categories', JSON.stringify(data.customCategories));
+    }
     get().saveToStorage();
   },
 }));

@@ -4,6 +4,20 @@ import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { CATEGORIES } from '../types';
 
+// 自定义分类列表
+const CUSTOM_CATEGORIES_KEY = 'grain_custom_categories';
+const getCustomCategories = (): string[] => {
+  try {
+    const saved = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+};
+const saveCustomCategories = (categories: string[]) => {
+  localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(categories));
+};
+
 export const AllTagsPage: React.FC = () => {
   const { toast, showToast, hideToast } = useToast();
 
@@ -19,6 +33,12 @@ export const AllTagsPage: React.FC = () => {
   const [newTagsList, setNewTagsList] = useState<Array<{ en: string; zh: string; category: string }>>([]);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [customCategories, setCustomCategories] = useState<string[]>(getCustomCategories());
+
+  // 所有可用分类（内置 + 自定义）
+  const allCategories = useMemo(() => {
+    return [...CATEGORIES, ...customCategories];
+  }, [customCategories]);
 
   // 筛选后的 Tags
   const filteredTags = useMemo(() => {
@@ -83,20 +103,49 @@ export const AllTagsPage: React.FC = () => {
   // 解析新 Tags 输入
   const handleParseInput = () => {
     const lines = newTagsInput.split('\n').filter((line) => line.trim());
+    const newCustomCategories: string[] = [];
+    
     const parsed = lines.map((line) => {
       const parts = line.split(',').map((p) => p.trim());
+      let category = parts[2] || CATEGORIES[0];
+      
+      // 检查分类是否有效
+      if (!allCategories.includes(category)) {
+        // 添加到自定义分类
+        if (!customCategories.includes(category) && !newCustomCategories.includes(category)) {
+          newCustomCategories.push(category);
+        }
+      }
+      
       return {
         en: parts[0] || '',
         zh: parts[1] || '',
-        category: parts[2] || CATEGORIES[0],
+        category,
       };
     });
+    
+    // 更新自定义分类
+    if (newCustomCategories.length > 0) {
+      const updated = [...customCategories, ...newCustomCategories];
+      setCustomCategories(updated);
+      saveCustomCategories(updated);
+      showToast(`已自动添加 ${newCustomCategories.length} 个新分类`);
+    }
+    
     setNewTagsList(parsed.filter((p) => p.en));
   };
 
   // 批量添加
   const handleBatchAdd = () => {
-    if (newTagsList.length === 0) return;
+    // 如果没有解析过，先解析
+    if (newTagsList.length === 0 && newTagsInput.trim()) {
+      handleParseInput();
+    }
+    // 再次检查
+    if (newTagsList.length === 0) {
+      showToast('请先输入要添加的提示词');
+      return;
+    }
     addTags(newTagsList);
     setShowAddModal(false);
     setNewTagsInput('');
@@ -150,7 +199,7 @@ export const AllTagsPage: React.FC = () => {
         </header>
 
         {/* Category Filter */}
-        <div className="bg-gray-50 px-6 py-3 flex-shrink-0 flex items-center gap-2 overflow-x-auto">
+        <div className="bg-gray-50 px-6 py-3 flex-shrink-0 flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setSelectedCategory(null)}
             className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
@@ -161,7 +210,7 @@ export const AllTagsPage: React.FC = () => {
           >
             全部
           </button>
-          {CATEGORIES.map((cat) => (
+          {allCategories.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
@@ -266,7 +315,7 @@ export const AllTagsPage: React.FC = () => {
             <Button variant="secondary" onClick={() => setShowAddModal(false)}>
               取消
             </Button>
-            <Button onClick={handleBatchAdd} disabled={newTagsList.length === 0}>
+            <Button onClick={handleBatchAdd}>
               添加 {newTagsList.length > 0 && `(${newTagsList.length})`}
             </Button>
           </div>

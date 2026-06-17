@@ -35,7 +35,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const setSyncInterval = useStore((s) => s.setSyncInterval);
   const importData = useStore((s) => s.importData);
   const exportData = useStore((s) => s.exportData);
-  const [syncEnabled, setSyncEnabled] = useState(false);
+  const [syncEnabled, setSyncEnabled] = useState(() => {
+    // 从 localStorage 恢复同步状态
+    try {
+      return localStorage.getItem('grain_sync_enabled') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [syncFileName, setSyncFileName] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState('');
   const fsSupported = isFileSystemAccessSupported();
@@ -45,7 +52,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     if (!isOpen) return;
     const loadFileHandle = async () => {
       const h = await getSavedDataFileHandle();
-      setSyncFileName(h?.name || null);
+      if (h) {
+        setSyncFileName(h.name);
+        setSyncEnabled(true);
+        localStorage.setItem('grain_sync_enabled', 'true');
+      } else {
+        setSyncFileName(null);
+        setSyncEnabled(false);
+        localStorage.setItem('grain_sync_enabled', 'false');
+      }
     };
     loadFileHandle();
   }, [isOpen]);
@@ -58,14 +73,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
         await bindDataFile(handle);
         setSyncEnabled(true);
         setSyncFileName(handle.name);
+        localStorage.setItem('grain_sync_enabled', 'true');
         setSyncMsg('同步已开启');
       } catch {
         setSyncEnabled(false);
+        localStorage.setItem('grain_sync_enabled', 'false');
       }
     } else {
       unbindDataFile();
       setSyncEnabled(false);
       setSyncFileName(null);
+      localStorage.setItem('grain_sync_enabled', 'false');
     }
   };
 

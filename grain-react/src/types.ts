@@ -48,6 +48,9 @@ export interface Folder {
 // 词组-目录映射
 export type GroupFolderMap = Record<string, string>;
 
+// 工作空间-目录映射
+export type WorkspaceFolderMap = Record<string, string>;
+
 export type CursorMode = 'spark' | 'burst' | 'off';
 
 export interface GrainDataSnapshot {
@@ -89,16 +92,22 @@ export interface StoreState {
   groupTags: GroupTags;
   folders: Folder[];
   groupFolderMap: GroupFolderMap;
+  workspaceFolders: Folder[];
+  workspaceFolderMap: WorkspaceFolderMap;
   
   // 计数器
   tagIdCounter: number;
   folderIdCounter: number;
+  workspaceFolderIdCounter: number;
   
   // UI 状态
   sidebarCollapsed: boolean;
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  
+  // 引导状态
+  hasCompletedOnboarding: boolean;
   
   // Actions
   // 工作空间
@@ -148,6 +157,9 @@ export interface StoreState {
   toggleSidebar: () => void;
   setCursorMode: (mode: CursorMode) => void;
   setSyncInterval: (seconds: number) => void;
+  
+  // 引导流程
+  setHasCompletedOnboarding: (completed: boolean) => void;
   
   // 数据持久化
   loadFromStorage: () => void;

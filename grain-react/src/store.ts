@@ -87,8 +87,13 @@ export const useStore = create<StoreState>((set, get) => ({
   currentWorkspaceId: DEFAULT_WORKSPACES[0]?.id || null,
   cursorMode: 'off' as CursorMode,
   syncInterval: 30,
+  hasCompletedOnboarding: false,
 
-  // 工作空间操作
+  // 引导流程
+  setHasCompletedOnboarding: (completed) => {
+    set({ hasCompletedOnboarding: completed });
+    localStorage.setItem('grain_onboarding_completed', String(completed));
+  },
   addWorkspace: (workspaceData) => {
     const newWorkspace: Workspace = {
       id: `ws_${generateId()}`,

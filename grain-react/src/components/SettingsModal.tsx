@@ -6,6 +6,7 @@ import { Button } from './Button';
 import {
   getSavedDataFileHandle,
   isFileSystemAccessSupported,
+  getFileSystemAccessSupportStatus,
   createDataFile,
   downloadSnapshot,
   readSnapshotFromUpload,
@@ -46,6 +47,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const [syncFileName, setSyncFileName] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState('');
   const fsSupported = isFileSystemAccessSupported();
+  const fsSupportStatus = getFileSystemAccessSupportStatus();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -169,7 +171,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 />
               </button>
             ) : (
-              <span className="text-xs text-gray-400">仅 Chrome/Edge</span>
+              <span className="text-xs text-gray-400" title={fsSupportStatus.reason}>
+                {fsSupportStatus.reason || '仅 Chrome/Edge'}
+              </span>
             )}
           </div>
           <p className="text-xs text-gray-500 leading-relaxed">

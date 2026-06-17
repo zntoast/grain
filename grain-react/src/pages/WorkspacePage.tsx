@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { LayoutGrid, List, Plus } from 'lucide-react';
 import { useStore } from '../store';
-import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast } from '../components';
+import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast, GroupCard } from '../components';
 import { COLOR_OPTIONS } from '../constants';
 import type { Group } from '../types';
 
@@ -43,20 +43,26 @@ export const WorkspacePage: React.FC = () => {
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
   const [editingWsField, setEditingWsField] = useState<'name' | 'desc' | null>(null);
   const [editingWsValue, setEditingWsValue] = useState('');
-  const [openWorkspaceIds, setOpenWorkspaceIds] = useState<string[]>([workspaceId!]);
+  const [openWorkspaceIds, setOpenWorkspaceIds] = useState<string[]>(() => 
+    workspaceId ? [workspaceId] : []
+  );
+  const prevWorkspaceIdRef = useRef(workspaceId);
 
-  // 确保当前 workspaceId 始终在打开列表中
   useEffect(() => {
-    if (workspaceId && !openWorkspaceIds.includes(workspaceId)) {
+    if (workspaceId && workspaceId !== prevWorkspaceIdRef.current && !openWorkspaceIds.includes(workspaceId)) {
       setOpenWorkspaceIds((prev) => [...prev, workspaceId]);
     }
+    prevWorkspaceIdRef.current = workspaceId;
   }, [workspaceId, openWorkspaceIds]);
 
   // 当前工作空间
   const workspace = workspaces.find((ws) => ws.id === workspaceId);
 
   // 当前工作空间的词组列表
-  const workspaceGroupEntries = workspaceId ? workspaceGroups[workspaceId] || [] : [];
+  const workspaceGroupEntries = useMemo(() => 
+    workspaceId ? workspaceGroups[workspaceId] || [] : [],
+    [workspaceId, workspaceGroups]
+  );
 
   // 按类型筛选词组
   const filteredGroups = useMemo(() => {
@@ -225,98 +231,10 @@ export const WorkspacePage: React.FC = () => {
     return groups.filter((g) => !linkedIds.has(g.id));
   }, [groups, workspaceGroupEntries]);
 
-  // 渲染词组卡片（网格 / 行 双模式）
-  const renderGroupCard = (item: { group: NonNullable<ReturnType<typeof groups.find>>; type: 'positive' | 'negative' }) => {
-    const { group, type } = item;
-    const groupTagsList = getGroupTags(group.id);
-    const isDragging = draggedGroupId === group.id;
-    const isDropOver = dropOverGroupId === group.id;
-    const isPositive = type === 'positive';
-
-    if (layoutMode === 'row') {
-      return (
-        <div
-          key={group.id}
-          draggable
-          onDragStart={(e) => handleDragStart(e, group.id)}
-          onDragEnd={handleDragEnd}
-          onDragOver={(e) => handleDragOver(e, group.id)}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleDrop(e, group.id)}
-          onMouseEnter={() => setHoveredGroupId(group.id)}
-          onMouseLeave={() => setHoveredGroupId(null)}
-          className={`flex items-center gap-3 px-4 py-2 bg-[#f4efe8] border border-gray-200 rounded-lg hover:border-gray-300 cursor-grab transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
-        >
-          <span className="text-gray-300 cursor-grab select-none text-sm">⠿</span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium flex-shrink-0 ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-            {isPositive ? '正向' : '负面'}
-          </span>
-          <button onClick={() => setEditingGroupId(group.id)} className="text-sm font-medium text-gray-900 hover:text-accent truncate text-left">{group.name}</button>
-          <span className="text-xs text-gray-400 ml-auto tabular-nums flex-shrink-0">{groupTagsList.length} 词</span>
-          <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md flex-shrink-0">
-            {isPositive ? (
-              <>
-                <span className="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">正向</span>
-                <button onClick={() => handleChangeGroupType(group.id, 'negative')} className="px-2 py-0.5 rounded text-xs text-gray-400 hover:bg-white hover:text-red-500">负向</button>
-              </>
-            ) : (
-              <>
-                <button onClick={() => handleChangeGroupType(group.id, 'positive')} className="px-2 py-0.5 rounded text-xs text-gray-400 hover:bg-white hover:text-green-500">正向</button>
-                <span className="px-2 py-0.5 rounded text-xs bg-red-100 text-red-700 font-medium">负向</span>
-              </>
-            )}
-          </div>
-          <button onClick={() => handleUnlinkGroup(group.id)} className="px-2 py-0.5 rounded text-xs text-red-400 hover:bg-red-50 hover:text-red-500 flex-shrink-0">解除</button>
-        </div>
-      );
-    }
-
-    return (
-      <div
-        key={group.id}
-        draggable
-        onDragStart={(e) => handleDragStart(e, group.id)}
-        onDragEnd={handleDragEnd}
-        onDragOver={(e) => handleDragOver(e, group.id)}
-        onDragLeave={handleDragLeave}
-        onDrop={(e) => handleDrop(e, group.id)}
-        onMouseEnter={() => setHoveredGroupId(group.id)}
-        onMouseLeave={() => setHoveredGroupId(null)}
-        className={`bg-[#f4efe8] border border-gray-200 rounded-xl overflow-hidden card-accent-top card-hover cursor-grab ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''}`}
-      >
-        <div className="px-4 pt-4 flex justify-between items-start">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-gray-400 cursor-grab select-none">⠿</span>
-            <span className={`text-xs px-2.5 py-0.5 rounded-full font-medium flex-shrink-0 ${isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-              {isPositive ? '正向' : '负面'}
-            </span>
-            <h4 className="text-sm font-semibold tracking-tight truncate">{group.name}</h4>
-          </div>
-          <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full flex-shrink-0">{groupTagsList.length} 个词</span>
-        </div>
-        <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed line-clamp-2">{group.desc}</p>
-        <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
-          <button onClick={() => setEditingGroupId(group.id)} className="text-xs text-accent hover:underline">管理提示词 →</button>
-          <div className="flex gap-1.5 items-center">
-            <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">
-              {isPositive ? (
-                <>
-                  <span className="px-2.5 py-0.5 rounded text-xs bg-green-100 text-green-700 font-medium">正向</span>
-                  <button onClick={() => handleChangeGroupType(group.id, 'negative')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-red-600">负向</button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => handleChangeGroupType(group.id, 'positive')} className="px-2.5 py-0.5 rounded text-xs text-gray-500 hover:text-green-600">正向</button>
-                  <span className="px-2.5 py-0.5 rounded text-xs bg-red-100 text-red-700 font-medium">负向</span>
-                </>
-              )}
-            </div>
-            <button onClick={() => handleUnlinkGroup(group.id)} className="h-7 px-2.5 rounded-md border text-xs text-red-500 border-red-200 bg-transparent hover:bg-red-50">解除关联</button>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  // 稳定的回调函数
+  const handleEditGroup = useCallback((groupId: string) => {
+    setEditingGroupId(groupId);
+  }, []);
 
   if (!workspace) {
     return (
@@ -573,7 +491,27 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'positive').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'positive').map((item) => renderGroupCard(item))
+                    filteredGroups.filter(g => g.type === 'positive').map((item) => (
+                      <GroupCard
+                        key={item.group!.id}
+                        group={item.group!}
+                        type={item.type}
+                        tagCount={getGroupTags(item.group!.id).length}
+                        isDragging={draggedGroupId === item.group!.id}
+                        isDropOver={dropOverGroupId === item.group!.id}
+                        layoutMode={layoutMode}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onMouseEnter={setHoveredGroupId}
+                        onMouseLeave={() => setHoveredGroupId(null)}
+                        onEdit={handleEditGroup}
+                        onChangeType={handleChangeGroupType}
+                        onUnlink={handleUnlinkGroup}
+                      />
+                    ))
                   ) : (
                     <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                       <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
@@ -630,7 +568,27 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'negative').length > 0 ? (
-                    filteredGroups.filter(g => g.type === 'negative').map((item) => renderGroupCard(item))
+                    filteredGroups.filter(g => g.type === 'negative').map((item) => (
+                      <GroupCard
+                        key={item.group!.id}
+                        group={item.group!}
+                        type={item.type}
+                        tagCount={getGroupTags(item.group!.id).length}
+                        isDragging={draggedGroupId === item.group!.id}
+                        isDropOver={dropOverGroupId === item.group!.id}
+                        layoutMode={layoutMode}
+                        onDragStart={handleDragStart}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
+                        onMouseEnter={setHoveredGroupId}
+                        onMouseLeave={() => setHoveredGroupId(null)}
+                        onEdit={handleEditGroup}
+                        onChangeType={handleChangeGroupType}
+                        onUnlink={handleUnlinkGroup}
+                      />
+                    ))
                   ) : (
                     <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                       <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">
@@ -697,7 +655,27 @@ export const WorkspacePage: React.FC = () => {
 
               <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                 {filteredGroups.length > 0 ? (
-                  filteredGroups.map((item) => renderGroupCard(item))
+                  filteredGroups.map((item) => (
+                    <GroupCard
+                      key={item.group!.id}
+                      group={item.group!}
+                      type={item.type}
+                      tagCount={getGroupTags(item.group!.id).length}
+                      isDragging={draggedGroupId === item.group!.id}
+                      isDropOver={dropOverGroupId === item.group!.id}
+                      layoutMode={layoutMode}
+                      onDragStart={handleDragStart}
+                      onDragEnd={handleDragEnd}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onMouseEnter={setHoveredGroupId}
+                      onMouseLeave={() => setHoveredGroupId(null)}
+                      onEdit={handleEditGroup}
+                      onChangeType={handleChangeGroupType}
+                      onUnlink={handleUnlinkGroup}
+                    />
+                  ))
                 ) : (
                   <div className={layoutMode === 'grid' ? 'col-span-3' : ''}>
                     <div className="bg-white border border-dashed border-gray-200 rounded-xl p-10 text-center">

@@ -43,10 +43,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
 
   useEffect(() => {
     if (!isOpen) return;
-    setSyncMsg('');
-    getSavedDataFileHandle().then((h) => {
+    const loadFileHandle = async () => {
+      const h = await getSavedDataFileHandle();
       setSyncFileName(h?.name || null);
-    });
+    };
+    loadFileHandle();
   }, [isOpen]);
 
   const handleToggleSync = async (on: boolean) => {

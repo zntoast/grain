@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Copy, Save, Trash2, Plus, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Button, Modal, useToast, Toast } from '../components';
@@ -23,21 +23,25 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
     unlinkTagFromGroup,
   } = useStore();
 
+  const tag = tags.find((t) => t.id === tagId);
+  const prevTagIdRef = useRef<string | null>(null);
+  const prevIsOpenRef = useRef(false);
+
   const [en, setEn] = useState('');
   const [zh, setZh] = useState('');
   const [category, setCategory] = useState<string>(CATEGORIES[0]);
   const [showLinkModal, setShowLinkModal] = useState(false);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
 
-  const tag = tags.find((t) => t.id === tagId);
-
   useEffect(() => {
-    if (tag) {
+    if (isOpen && tag && (prevTagIdRef.current !== tagId || !prevIsOpenRef.current)) {
       setEn(tag.en);
       setZh(tag.zh);
       setCategory(tag.category);
+      prevTagIdRef.current = tagId;
     }
-  }, [tag, isOpen]);
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, tag, tagId]);
 
   // 关联词组
   const parentGroups = groups.filter((g) => {

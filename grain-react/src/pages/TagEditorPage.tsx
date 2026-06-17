@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Copy, Save, Trash2, ChevronRight, Plus, X } from 'lucide-react';
 import { useStore } from '../store';
@@ -28,15 +28,17 @@ export const TagEditorPage: React.FC = () => {
 
   // 当前 Tag
   const tag = tags.find((t) => t.id === tagId);
+  const prevTagIdRef = useRef<string | undefined>(undefined);
 
   // 初始化表单
-  React.useEffect(() => {
-    if (tag) {
+  useEffect(() => {
+    if (tag && prevTagIdRef.current !== tagId) {
       setEn(tag.en);
       setZh(tag.zh);
       setCategory(tag.category);
+      prevTagIdRef.current = tagId;
     }
-  }, [tag]);
+  }, [tag, tagId]);
 
   // 所属词组
   const parentGroups = groups.filter((g) => {

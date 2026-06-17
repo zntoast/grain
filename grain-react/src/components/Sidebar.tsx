@@ -25,7 +25,6 @@ export const Sidebar: React.FC = () => {
   const {
     workspaces,
     groups,
-    tags,
     folders,
     groupFolderMap,
     groupTags,
@@ -173,8 +172,8 @@ export const Sidebar: React.FC = () => {
   useEffect(() => {
     if (!contextMenu) return;
     const close = () => setContextMenu(null);
-    document.addEventListener('click', close);
-    document.addEventListener('contextmenu', close);
+    document.addEventListener('click', close, { passive: true });
+    document.addEventListener('contextmenu', close, { passive: true });
     return () => {
       document.removeEventListener('click', close);
       document.removeEventListener('contextmenu', close);
@@ -218,7 +217,7 @@ export const Sidebar: React.FC = () => {
       >
         <FileText size={14} className="text-gray-400 flex-shrink-0" />
         <span className="truncate flex-1">{group.name}</span>
-        <span className="text-[12px] text-gray-400 tabular-nums">{getGroupTagCount(group.id)}</span>
+        <span className="sidebar-dot" />
       </div>
     );
   };
@@ -290,7 +289,7 @@ export const Sidebar: React.FC = () => {
       <aside className="w-[272px] flex-shrink-0 sidebar-warm flex flex-col h-screen sticky top-0 z-40">
         <div className="flex items-center justify-between px-4 h-14 border-b sidebar-divider">
           <Link to="/" className="flex items-center gap-2.5 text-gray-900 font-semibold">
-            <span className="w-8 h-8 rounded-xl bg-accent text-white flex items-center justify-center text-sm font-bold shadow-sm">G</span>
+            <span className="w-1 h-5 rounded-full bg-accent" />
             <span className="text-[15px] tracking-tight">Grain 提示词</span>
           </Link>
           <button onClick={toggleSidebar} className="w-8 h-8 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="收起侧边栏">
@@ -307,8 +306,8 @@ export const Sidebar: React.FC = () => {
             {openSections.workspaces && workspaces.length > 0 ? (
               workspaces.map((ws) => (
                 <Link key={ws.id} to={`/workspace/${ws.id}`} className={`group flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] leading-5 transition-colors sidebar-link ${isActive(`/workspace/${ws.id}`) ? 'nav-active sidebar-link-active font-semibold' : ''}`}>
-                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: `oklch(58% 0.18 ${ws.color})` }} />
                   <span className="truncate">{ws.name}</span>
+                  <span className="sidebar-dot" />
                 </Link>
               ))
             ) : openSections.workspaces ? (
@@ -339,7 +338,7 @@ export const Sidebar: React.FC = () => {
               <Link to="/tags" className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-[14px] leading-5 transition-colors sidebar-link ${isActive('/tags') || location.pathname.startsWith('/tag') ? 'nav-active sidebar-link-active font-semibold' : ''}`}>
                 <Tag size={14} className="text-gray-400 flex-shrink-0" />
                 <span className="truncate flex-1">全部提示词</span>
-                <span className="text-[12px] text-gray-400 tabular-nums">{tags.length}</span>
+                <span className="sidebar-dot" />
               </Link>
             )}
           </section>

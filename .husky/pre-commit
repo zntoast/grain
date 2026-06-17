@@ -1,0 +1,1 @@
+cd grain-react && npx lint-staged

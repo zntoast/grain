@@ -701,7 +701,7 @@ export const Sidebar: React.FC = () => {
         <div className="flex items-center justify-between px-4 h-14 border-b sidebar-divider">
           <Link to="/" className="flex items-center gap-2.5 text-gray-900 font-semibold">
             <span className="w-1 h-5 rounded-full bg-accent" />
-            <span className="text-[15px] tracking-tight">Grain 提示词</span>
+            <span className="text-[15px] tracking-tight">Grain Tag</span>
           </Link>
           <button onClick={toggleSidebar} className="w-8 h-8 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="收起侧边栏"><ChevronLeft size={14} /></button>
         </div>

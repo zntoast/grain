@@ -120,14 +120,6 @@ export const WorkspacePage: React.FC = () => {
     };
   }, [workspaceGroupEntries, groupTags, workspaces, groups]);
 
-  // 获取词组的所有标签
-  const getGroupTags = (groupId: string) => {
-    const tagIds = groupTags[groupId] || [];
-    return tagIds
-      .map((tagId) => tags.find((t) => t.id === tagId))
-      .filter(Boolean);
-  };
-
   // 获取词组的所有提示词（包括自定义提示词）
   const getGroupAllTags = (groupId: string) => {
     const tagIds = groupTags[groupId] || [];

@@ -111,7 +111,7 @@ export const AllTagsPage: React.FC = () => {
     
     const parsed = lines.map((line) => {
       const parts = line.split(',').map((p) => p.trim());
-      let category = parts[2] || CATEGORIES[0];
+      const category = parts[2] || CATEGORIES[0];
       
       // 检查分类是否有效
       if (!allCategories.includes(category)) {
@@ -199,7 +199,7 @@ export const AllTagsPage: React.FC = () => {
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <header className="page-header px-6 py-4 flex-shrink-0 sticky top-0 z-20">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-lg font-semibold text-gray-900">全部提示词</h1>
             <div className="flex items-center gap-3">
@@ -241,13 +241,13 @@ export const AllTagsPage: React.FC = () => {
         </header>
 
         {/* Category Filter */}
-        <div className="bg-gray-50 px-6 py-3 flex-shrink-0 flex items-center gap-2 flex-wrap">
+        <div className="bg-[#f5f1ef] border-b border-[#e8e2e3] px-6 py-3 flex-shrink-0 flex items-center gap-2 flex-wrap sticky top-[93px] z-10">
           <button
             onClick={() => setSelectedCategory(null)}
-            className={`px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
+            className={`filter-chip control-press whitespace-nowrap ${
               selectedCategory === null
-                ? 'bg-accent text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
+                ? 'filter-chip-active'
+                : ''
             }`}
           >
             全部
@@ -306,7 +306,7 @@ export const AllTagsPage: React.FC = () => {
 
           {Object.keys(groupedTags).length > 0 ? (
             Object.entries(groupedTags).map(([category, categoryTags]) => (
-              <div key={category} className="mb-6">
+              <div key={category} className="content-section mb-7">
                 <h3 className="text-sm font-semibold text-gray-500 mb-3 section-title">{category}</h3>
                 <div className="flex flex-wrap gap-2">
                   {categoryTags.map((tag) => (
@@ -355,7 +355,7 @@ export const AllTagsPage: React.FC = () => {
               value={newTagsInput}
               onChange={(e) => setNewTagsInput(e.target.value)}
               placeholder={`cinematic_lighting,电影布光,光影\nsoft_lighting,柔光,光影\nneon_light,霓虹光影,光影`}
-              className="w-full h-40 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none resize-none font-mono"
+              className="form-control w-full h-40 px-3 py-2 text-sm resize-none font-mono"
             />
           </div>
           <Button variant="secondary" size="sm" onClick={handleParseInput}>

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Upload, X, ZoomIn } from 'lucide-react';
 
 interface ImagePreviewProps {
@@ -7,14 +7,9 @@ interface ImagePreviewProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
-  const [imageUrl, setImageUrl] = useState(initialUrl || '');
+  const imageUrl = initialUrl || '';
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // 当外部 imageUrl prop 变化时同步内部状态
-  useEffect(() => {
-    setImageUrl(initialUrl || '');
-  }, [initialUrl]);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,7 +17,6 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64 = event.target?.result as string;
-        setImageUrl(base64);
         onImageChange?.(base64);
       };
       reader.readAsDataURL(file);
@@ -30,7 +24,6 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
   };
 
   const handleRemove = () => {
-    setImageUrl('');
     onImageChange?.('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -61,6 +54,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
                 onClick={handleRemove}
                 className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-red-500 transition-colors backdrop-blur-sm"
                 title="移除图片"
+                aria-label="移除图片"
               >
                 <X size={14} />
               </button>
@@ -69,6 +63,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
             <button
               onClick={() => fileInputRef.current?.click()}
               className="absolute inset-0 flex flex-col items-center justify-center hover:bg-pink-50/50 transition-colors"
+              aria-label="上传预览图"
             >
               <Upload size={20} className="text-pink-400 mb-1" />
               <span className="text-xs text-gray-500">上传预览图</span>
@@ -94,6 +89,8 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
           <button 
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             onClick={() => setShowModal(false)}
+            aria-label="关闭预览"
+            title="关闭预览"
           >
             <X size={20} />
           </button>

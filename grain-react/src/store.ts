@@ -516,7 +516,9 @@ export const useStore = create<StoreState>((set, get) => ({
     try {
       const saved = localStorage.getItem('grain_custom_categories');
       if (saved) customCategories = JSON.parse(saved);
-    } catch {}
+    } catch {
+      customCategories = [];
+    }
     
     return {
       version: 1,

@@ -36,7 +36,7 @@ import { useStore } from '../store';
 import { Button } from './Button';
 import { Modal } from './Modal';
 import { SettingsModal } from './SettingsModal';
-import type { Folder, Group } from '../types';
+import type { Folder, Group, Workspace } from '../types';
 
 /* ============================================================
    SortableGroupItem — 可拖拽的词组行
@@ -97,8 +97,8 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
           className="flex-1 min-w-0 px-2 py-1 border border-accent rounded-md text-[13px] bg-white outline-none"
           autoFocus
         />
-        <button onClick={onConfirmEdit} className="p-0.5 rounded text-green-500 hover:bg-green-50"><Check size={14} /></button>
-        <button onClick={onCancelEdit} className="p-0.5 rounded text-gray-400 hover:bg-gray-100"><X size={14} /></button>
+        <button onClick={onConfirmEdit} className="p-0.5 rounded text-green-500 hover:bg-green-50" aria-label="确认重命名" title="确认重命名"><Check size={14} /></button>
+        <button onClick={onCancelEdit} className="p-0.5 rounded text-gray-400 hover:bg-gray-100" aria-label="取消重命名" title="取消重命名"><X size={14} /></button>
         <span className="text-[11px] text-gray-400 tabular-nums w-6 text-right">{tagCount}</span>
       </div>
     );
@@ -115,6 +115,8 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
         {...attributes} {...listeners}
         className="opacity-0 group-hover:opacity-100 cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0 transition-opacity"
         onClick={(e) => e.stopPropagation()}
+        aria-label={`拖拽词组 ${group.name}`}
+        title="拖拽排序"
       ><GripVertical size={12} /></button>
 
       <FileText size={14} className="text-gray-400 flex-shrink-0" />
@@ -125,7 +127,7 @@ const SortableGroupItem: React.FC<SortableGroupItemProps> = ({
       {/* 右键菜单 */}
       <div ref={menuRef}>
         {menuOpen && (
-          <div className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[100] min-w-[110px]" style={{ left: menuPos.x, top: menuPos.y }}>
+          <div className="fixed bg-[#fffefc] border border-[#e8e2e3] rounded-[10px] shadow-[0_12px_32px_rgba(48,32,39,.14)] py-1 z-[100] min-w-[120px]" style={{ left: menuPos.x, top: menuPos.y }}>
             <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onStartEdit(); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Pencil size={12} />重命名</button>
             <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMove(); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><ChevronRight size={12} />移动到目录</button>
             <div className="border-t border-gray-100 my-0.5" />
@@ -185,7 +187,7 @@ const FolderBlock: React.FC<{ folder: Folder; cb: FolderBlockCallbacks }> = ({ f
 
   return (
     <div ref={setDropRef} className={`rounded-lg transition-colors ${isOver ? 'bg-accent/10 ring-1 ring-accent/30' : ''}`}>
-      <div className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[13px] font-semibold text-gray-600 bg-amber-50/40 hover:bg-amber-50/70" onContextMenu={handleContextMenu}>
+      <div className="group flex items-center gap-1.5 px-2 py-1.5 rounded-[10px] text-[13px] font-semibold text-gray-600 bg-[#f7f3f1] hover:bg-[#f2ece9]" onContextMenu={handleContextMenu}>
         <button onClick={() => cb.toggleFolder(folder.id)} className="w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-white" aria-label={isOpen ? '折叠' : '展开'}>
           <ChevronRight size={12} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </button>
@@ -206,7 +208,7 @@ const FolderBlock: React.FC<{ folder: Folder; cb: FolderBlockCallbacks }> = ({ f
         {/* 右键菜单 */}
         <div ref={menuRef}>
           {menuOpen && (
-            <div className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[100] min-w-[110px]" style={{ left: menuPos.x, top: menuPos.y }}>
+            <div className="fixed bg-[#fffefc] border border-[#e8e2e3] rounded-[10px] shadow-[0_12px_32px_rgba(48,32,39,.14)] py-1 z-[100] min-w-[120px]" style={{ left: menuPos.x, top: menuPos.y }}>
               <button onClick={() => { setMenuOpen(false); cb.beginCreateGroup(folder.id); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Plus size={12} />新建词组</button>
               {cb.getFolderLevel(folder.id) === 0 && (
                 <button onClick={() => { setMenuOpen(false); cb.beginCreateFolder(folder.id); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Plus size={12} />新建子目录</button>
@@ -281,8 +283,8 @@ const WorkspaceItem: React.FC<{
           className="flex-1 min-w-0 px-2 py-1 border border-accent rounded-md text-[13px] bg-white outline-none"
           autoFocus
         />
-        <button onClick={confirmRename} className="p-0.5 rounded text-green-500 hover:bg-green-50"><Check size={14} /></button>
-        <button onClick={cancelRename} className="p-0.5 rounded text-gray-400 hover:bg-gray-100"><X size={14} /></button>
+        <button onClick={confirmRename} className="p-0.5 rounded text-green-500 hover:bg-green-50" aria-label="确认重命名" title="确认重命名"><Check size={14} /></button>
+        <button onClick={cancelRename} className="p-0.5 rounded text-gray-400 hover:bg-gray-100" aria-label="取消重命名" title="取消重命名"><X size={14} /></button>
       </div>
     );
   }
@@ -298,11 +300,13 @@ const WorkspaceItem: React.FC<{
         {...attributes} {...listeners}
         className="opacity-0 group-hover:opacity-100 cursor-grab text-gray-300 hover:text-gray-500 flex-shrink-0 transition-opacity"
         onClick={(e) => e.stopPropagation()}
+        aria-label={`拖拽工作空间 ${ws.name}`}
+        title="拖拽排序"
       ><GripVertical size={12} /></button>
       <span className="truncate flex-1">{ws.name}</span>
       <div ref={menuRef}>
         {menuOpen && (
-          <div className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[100] min-w-[110px]" style={{ left: menuPos.x, top: menuPos.y }}>
+          <div className="fixed bg-[#fffefc] border border-[#e8e2e3] rounded-[10px] shadow-[0_12px_32px_rgba(48,32,39,.14)] py-1 z-[100] min-w-[120px]" style={{ left: menuPos.x, top: menuPos.y }}>
             <button onClick={(e) => { e.stopPropagation(); startRename(); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Pencil size={12} />重命名</button>
             <button onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onMove(); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><ChevronRight size={12} />移动到目录</button>
             <div className="border-t border-gray-100 my-0.5" />
@@ -330,8 +334,8 @@ interface WsFolderCB {
   beginCreateFolder: (parentId?: string | null) => void;
   handleDeleteFolder: (id: string) => void;
   getChildFolders: (id: string) => Folder[];
-  getWsInFolder: (id: string) => typeof workspaces;
-  renderWsItem: (ws: typeof workspaces[0]) => React.ReactNode;
+  getWsInFolder: (id: string) => Workspace[];
+  renderWsItem: (ws: Workspace) => React.ReactNode;
 }
 
 const WorkspaceFolderBlock: React.FC<{ folder: Folder; cb: WsFolderCB }> = ({ folder, cb }) => {
@@ -361,8 +365,8 @@ const WorkspaceFolderBlock: React.FC<{ folder: Folder; cb: WsFolderCB }> = ({ fo
 
   return (
     <div ref={setDropRef} className={`rounded-lg transition-colors ${isOver ? 'bg-accent/10 ring-1 ring-accent/30' : ''}`}>
-      <div className="group flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[13px] font-semibold text-gray-600 bg-amber-50/40 hover:bg-amber-50/70" onContextMenu={handleContextMenu}>
-        <button onClick={() => cb.toggleFolder(folder.id)} className="w-5 h-5 flex items-center justify-center rounded-md text-gray-400 hover:text-gray-700 hover:bg-white">
+      <div className="group flex items-center gap-1.5 px-2 py-1.5 rounded-[10px] text-[13px] font-semibold text-gray-600 bg-[#f7f3f1] hover:bg-[#f2ece9]" onContextMenu={handleContextMenu}>
+        <button onClick={() => cb.toggleFolder(folder.id)} className="w-6 h-6 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white" aria-label={isOpen ? '折叠' : '展开'} title={isOpen ? '折叠' : '展开'}>
           <ChevronRight size={12} className={`transition-transform ${isOpen ? 'rotate-90' : ''}`} />
         </button>
         <FolderOpen size={13} className="text-gray-400" />
@@ -380,7 +384,7 @@ const WorkspaceFolderBlock: React.FC<{ folder: Folder; cb: WsFolderCB }> = ({ fo
         )}
         <div ref={menuRef}>
           {menuOpen && (
-            <div className="fixed bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-[100] min-w-[110px]" style={{ left: menuPos.x, top: menuPos.y }}>
+            <div className="fixed bg-[#fffefc] border border-[#e8e2e3] rounded-[10px] shadow-[0_12px_32px_rgba(48,32,39,.14)] py-1 z-[100] min-w-[120px]" style={{ left: menuPos.x, top: menuPos.y }}>
               <button onClick={() => { setMenuOpen(false); cb.beginCreateWs(folder.id); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Plus size={12} />新工作空间</button>
               <button onClick={() => { setMenuOpen(false); cb.beginCreateFolder(folder.id); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Plus size={12} />新建子目录</button>
               <button onClick={() => { setMenuOpen(false); cb.beginRename(folder); }} className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-50 flex items-center gap-2"><Pencil size={12} />重命名</button>
@@ -588,9 +592,6 @@ export const Sidebar: React.FC = () => {
     navigate(`/workspace/${ws.id}`);
   };
 
-  const beginCreateWsFolder = (parentId?: string | null) => {
-    setShowCreateWsFolderModal(true);
-  };
   const handleCreateWsFolder = () => {
     if (!newWsFolderName.trim()) return;
     addWorkspaceFolder(newWsFolderName.trim(), selectedWsFolderId || undefined);
@@ -616,7 +617,7 @@ export const Sidebar: React.FC = () => {
   const isWsFolderOpen = (id: string) => openWsFolders[id] !== false;
 
   // ---- render helpers ----
-  const renderGroupItem = (group: Group, _cls?: string) => (
+  const renderGroupItem = (group: Group) => (
     <SortableGroupItem
       key={group.id}
       group={group}
@@ -703,7 +704,7 @@ export const Sidebar: React.FC = () => {
             <span className="w-1 h-5 rounded-full bg-accent" />
             <span className="text-[15px] tracking-tight">Grain Tag</span>
           </Link>
-          <button onClick={toggleSidebar} className="w-8 h-8 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="收起侧边栏"><ChevronLeft size={14} /></button>
+          <button onClick={toggleSidebar} className="w-8 h-8 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="收起侧边栏" aria-label="收起侧边栏"><ChevronLeft size={14} /></button>
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-3">
@@ -769,7 +770,7 @@ export const Sidebar: React.FC = () => {
 
         <div className="p-3 border-t sidebar-footer flex gap-2">
           <Link to="/" className="w-9 h-9 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="首页"><Home size={16} /></Link>
-          <button className="w-9 h-9 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="设置" onClick={() => setShowSettingsModal(true)}><Settings size={16} /></button>
+          <button className="w-9 h-9 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="设置" aria-label="设置" onClick={() => setShowSettingsModal(true)}><Settings size={16} /></button>
         </div>
       </aside>
 
@@ -777,7 +778,7 @@ export const Sidebar: React.FC = () => {
       <Modal isOpen={Boolean(movingGroupId)} onClose={() => { setMovingGroupId(null); setMoveTargetFolderId(''); }} title="移动词组" description={`将词组「${groups.find((g) => g.id === movingGroupId)?.name || ''}」移动到指定目录`}>
         <div className="space-y-4">
           <label className="block text-xs font-medium text-gray-500 mb-1">目标目录</label>
-          <select value={moveTargetFolderId} onChange={(e) => setMoveTargetFolderId(e.target.value)} className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none">
+          <select value={moveTargetFolderId} onChange={(e) => setMoveTargetFolderId(e.target.value)} className="form-control w-full h-10 px-3 text-sm">
             <option value="">（根目录）</option>
             {rootFolders.map((f) => (
               <React.Fragment key={f.id}>
@@ -796,7 +797,7 @@ export const Sidebar: React.FC = () => {
       <Modal isOpen={Boolean(movingWsId)} onClose={() => { setMovingWsId(null); setMoveWsTargetFolderId(''); }} title="移动工作空间" description={`将工作空间「${workspaces.find((w) => w.id === movingWsId)?.name || ''}」移动到指定目录`}>
         <div className="space-y-4">
           <label className="block text-xs font-medium text-gray-500 mb-1">目标目录</label>
-          <select value={moveWsTargetFolderId} onChange={(e) => setMoveWsTargetFolderId(e.target.value)} className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none">
+          <select value={moveWsTargetFolderId} onChange={(e) => setMoveWsTargetFolderId(e.target.value)} className="form-control w-full h-10 px-3 text-sm">
             <option value="">（根目录）</option>
             {wsRootFolders.map((f) => (
               <React.Fragment key={f.id}>
@@ -815,7 +816,7 @@ export const Sidebar: React.FC = () => {
       <Modal isOpen={showCreateGroupModal} onClose={() => setShowCreateGroupModal(false)} title="新建词组">
         <div className="space-y-4">
           <label className="block text-xs font-medium text-gray-500 mb-1">词组名称</label>
-          <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="例如：人物肖像" className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none" autoFocus />
+          <input type="text" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="例如：人物肖像" className="form-control w-full h-10 px-3 text-sm" autoFocus />
           {selectedFolderId && <p className="text-xs text-gray-400">将在目录「{folders.find((f) => f.id === selectedFolderId)?.name}」下创建</p>}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={() => setShowCreateGroupModal(false)}>取消</Button>
@@ -827,10 +828,10 @@ export const Sidebar: React.FC = () => {
       <Modal isOpen={showCreateFolderModal} onClose={() => setShowCreateFolderModal(false)} title="新建目录">
         <div className="space-y-4">
           <label className="block text-xs font-medium text-gray-500 mb-1">目录名称</label>
-          <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="例如：设计素材" className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none" autoFocus />
+          <input type="text" value={newFolderName} onChange={(e) => setNewFolderName(e.target.value)} placeholder="例如：设计素材" className="form-control w-full h-10 px-3 text-sm" autoFocus />
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">父目录（可选）</label>
-            <select value={selectedFolderId || ''} onChange={(e) => setSelectedFolderId(e.target.value || null)} className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none">
+            <select value={selectedFolderId || ''} onChange={(e) => setSelectedFolderId(e.target.value || null)} className="form-control w-full h-10 px-3 text-sm">
               <option value="">（无父目录 — 创建一级目录）</option>
               {rootFolders.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
             </select>
@@ -849,11 +850,11 @@ export const Sidebar: React.FC = () => {
         <div className="space-y-4">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">名称</label>
-            <input type="text" value={newWsName} onChange={(e) => setNewWsName(e.target.value)} placeholder="例如：品牌设计素材" className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none" autoFocus />
+            <input type="text" value={newWsName} onChange={(e) => setNewWsName(e.target.value)} placeholder="例如：品牌设计素材" className="form-control w-full h-10 px-3 text-sm" autoFocus />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">描述（可选）</label>
-            <input type="text" value={newWsDesc} onChange={(e) => setNewWsDesc(e.target.value)} placeholder="简要描述这个工作空间的用途" className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none" />
+            <input type="text" value={newWsDesc} onChange={(e) => setNewWsDesc(e.target.value)} placeholder="简要描述这个工作空间的用途" className="form-control w-full h-10 px-3 text-sm" />
           </div>
           {selectedWsFolderId && (
             <p className="text-xs text-gray-400">将在目录「{workspaceFolders.find((f) => f.id === selectedWsFolderId)?.name}」下创建</p>
@@ -868,7 +869,7 @@ export const Sidebar: React.FC = () => {
       <Modal isOpen={showCreateWsFolderModal} onClose={() => setShowCreateWsFolderModal(false)} title="新建工作空间目录">
         <div className="space-y-4">
           <label className="block text-xs font-medium text-gray-500 mb-1">目录名称</label>
-          <input type="text" value={newWsFolderName} onChange={(e) => setNewWsFolderName(e.target.value)} placeholder="例如：设计项目" className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none" autoFocus />
+          <input type="text" value={newWsFolderName} onChange={(e) => setNewWsFolderName(e.target.value)} placeholder="例如：设计项目" className="form-control w-full h-10 px-3 text-sm" autoFocus />
           {selectedWsFolderId && (
             <p className="text-xs text-gray-400">将在目录「{workspaceFolders.find((f) => f.id === selectedWsFolderId)?.name}」下创建</p>
           )}

@@ -34,14 +34,14 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#21171c]/35 backdrop-blur-[3px] p-5"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         ref={modalRef}
-        className={`bg-white rounded-xl shadow-2xl max-h-[85vh] overflow-y-auto ${width} max-w-[90vw]`}
+        className={`modal-enter bg-[#fffefc] rounded-[14px] border border-white/80 shadow-[0_22px_60px_rgba(48,32,39,.20)] max-h-[85vh] overflow-y-auto ${width} max-w-[90vw]`}
       >
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eee7e8]">
           <div>
             <h3 className="text-base font-semibold text-gray-900">{title}</h3>
             {description && (
@@ -50,9 +50,11 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600"
+            className="icon-control control-press hover:bg-[#f4efed] text-gray-400 hover:text-gray-700"
+            aria-label="关闭"
+            title="关闭"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
         <div className="p-5">{children}</div>

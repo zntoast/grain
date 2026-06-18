@@ -14,20 +14,20 @@ export const Button: React.FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseStyles = 'inline-flex items-center justify-center gap-1.5 font-medium transition-all rounded-lg border';
+  const baseStyles = 'control-press inline-flex items-center justify-center gap-1.5 font-semibold rounded-[10px] border';
   
   const variants = {
-    primary: 'bg-accent text-white border-accent hover:opacity-85',
-    secondary: 'bg-white text-gray-900 border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm',
-    danger: 'bg-red-500 text-white border-red-500 hover:opacity-85',
-    ghost: 'bg-transparent text-gray-500 border-transparent hover:bg-gray-100',
-    gradient: 'bg-gradient-to-r from-accent to-purple-500 text-white border-transparent hover:opacity-90 shadow-md shadow-accent/20',
+    primary: 'bg-accent text-white border-accent hover:bg-[#d94d82] hover:border-[#d94d82] shadow-[0_2px_0_#bd3d70]',
+    secondary: 'bg-[#fffefc] text-gray-800 border-[#e8e2e3] hover:bg-[#faf7f5] hover:border-[#d9d0d3] shadow-[0_2px_0_rgba(48,32,39,.06)]',
+    danger: 'bg-red-500 text-white border-red-500 hover:bg-red-600 hover:border-red-600 shadow-[0_2px_0_#b91c1c]',
+    ghost: 'bg-transparent text-gray-500 border-transparent hover:bg-[#f4efed] hover:text-gray-800',
+    gradient: 'bg-[#e85d91] text-white border-[#e85d91] hover:bg-[#d94d82] hover:border-[#d94d82] shadow-[0_2px_0_#bd3d70]',
   };
   
   const sizes = {
-    sm: 'h-7 px-2.5 text-xs',
+    sm: 'h-8 px-3 text-xs',
     md: 'h-9 px-4 text-sm',
-    lg: 'h-11 px-6 text-base',
+    lg: 'h-11 px-5 text-sm',
   };
   
   return (

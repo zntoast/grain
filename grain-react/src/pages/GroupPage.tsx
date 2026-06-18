@@ -113,12 +113,12 @@ export const GroupPage: React.FC = () => {
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
-  const customCategories = getCustomCategories();
+  const customCategories = useMemo(() => getCustomCategories(), []);
 
   // 所有可用分类（内置 + 自定义）
   const allCategories = useMemo(() => {
     return [...CATEGORIES, ...customCategories];
-  }, []);
+  }, [customCategories]);
 
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
@@ -195,7 +195,6 @@ export const GroupPage: React.FC = () => {
 
   // 处理图片变化，保存到词组数据
   const handleImageChange = (url: string) => {
-    setPreviewImageUrl(url);
     if (groupId) {
       updateGroup(groupId, { imageUrl: url });
     }
@@ -252,13 +251,14 @@ export const GroupPage: React.FC = () => {
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <header className="page-header px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="icon-control control-press text-gray-400 hover:text-gray-700 hover:bg-[#f4efed]"
                 title="返回"
+                aria-label="返回"
               >
                 <ArrowLeft size={18} />
               </button>
@@ -311,7 +311,7 @@ export const GroupPage: React.FC = () => {
                     复制
                   </Button>
                 </div>
-                <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 font-mono text-xs text-gray-700 leading-relaxed h-full overflow-auto">
+                <div className="surface-card bg-[#fdfaf8] p-3 font-mono text-xs text-gray-700 leading-relaxed h-full overflow-auto">
                   {[...currentTags.map((t) => t!.en), ...customLines].join(', ') || '暂无提示词'}
                 </div>
               </div>
@@ -354,7 +354,7 @@ export const GroupPage: React.FC = () => {
                 </SortableContext>
               </DndContext>
             ) : (
-              <div className="bg-gray-50 border border-dashed border-gray-200 rounded-xl p-6 text-center">
+              <div className="bg-[#fdfaf8] border border-dashed border-[#d9d0d3] rounded-[14px] p-6 text-center">
                 <p className="text-sm text-gray-400">暂无提示词，从下方选择添加</p>
               </div>
             )}
@@ -389,7 +389,7 @@ export const GroupPage: React.FC = () => {
                   }}
                   placeholder="输入自定义提示词，每行一个..."
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-mono focus:border-accent focus:outline-none resize-none"
+                  className="form-control w-full px-3 py-2 text-sm font-mono resize-none"
                 />
                 {customTags && (
                   <button
@@ -436,10 +436,10 @@ export const GroupPage: React.FC = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-2.5 py-1 rounded text-xs ${
+                  className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
                     selectedCategory === cat
-                      ? 'bg-accent text-white'
-                      : 'bg-white border border-gray-200 text-gray-600'
+                      ? 'filter-chip-active'
+                      : ''
                   }`}
                 >
                   {cat}
@@ -450,7 +450,7 @@ export const GroupPage: React.FC = () => {
             {/* 标签选择区 */}
             {Object.keys(groupedAvailableTags).length > 0 ? (
               Object.entries(groupedAvailableTags).map(([category, categoryTags]) => (
-                <div key={category} className="mb-5">
+                <div key={category} className="content-section mb-6">
                   <h4 className="text-xs font-semibold text-gray-500 mb-2">{category}</h4>
                   <div className="flex flex-wrap gap-2">
                     {categoryTags.map((tag) => (
@@ -481,7 +481,7 @@ export const GroupPage: React.FC = () => {
                 <Link
                   key={ws.id}
                   to={`/workspace/${ws.id}`}
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 text-xs text-gray-600 hover:bg-gray-100"
+                  className="control-press inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-[#e8e2e3] bg-[#fdfaf8] text-xs text-gray-600 hover:bg-[#fff0f5] hover:border-[#efacc4]"
                 >
                   <span
                     className="w-1.5 h-1.5 rounded-full"
@@ -513,7 +513,7 @@ export const GroupPage: React.FC = () => {
               value={newTagEn}
               onChange={(e) => setNewTagEn(e.target.value)}
               placeholder="例如：cinematic_lighting"
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none font-mono"
+              className="form-control w-full h-10 px-3 text-sm font-mono"
             />
           </div>
           <div>
@@ -523,7 +523,7 @@ export const GroupPage: React.FC = () => {
               value={newTagZh}
               onChange={(e) => setNewTagZh(e.target.value)}
               placeholder="例如：电影布光"
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+              className="form-control w-full h-10 px-3 text-sm"
             />
           </div>
           <div>
@@ -531,7 +531,7 @@ export const GroupPage: React.FC = () => {
             <select
               value={newTagCategory}
               onChange={(e) => setNewTagCategory(e.target.value)}
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+              className="form-control w-full h-10 px-3 text-sm"
             >
               {CATEGORIES.map((cat) => (
                 <option key={cat} value={cat}>

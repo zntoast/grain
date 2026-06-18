@@ -290,10 +290,10 @@ export const WorkspacePage: React.FC = () => {
             if (!ws) return null;
             const isActive = ws.id === workspaceId;
             return (
-              <button
+              <div
                 key={ws.id}
                 onClick={() => navigate(`/workspace/${ws.id}`)}
-                className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-t-md text-sm font-medium relative transition-colors ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-t-md text-sm font-medium relative transition-colors cursor-pointer ${
                   isActive
                     ? 'text-[#b52f64] bg-[#fff0f5]'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-[#f7f3f1]'
@@ -317,7 +317,6 @@ export const WorkspacePage: React.FC = () => {
                       const remaining = openWorkspaceIds.filter((oid) => oid !== ws.id);
                       setOpenWorkspaceIds(remaining);
                       if (isActive) {
-                        // 优先跳到右侧邻接标签，没有则左侧
                         const next = remaining[Math.min(idx, remaining.length - 1)];
                         navigate(`/workspace/${next}`);
                       }
@@ -328,7 +327,7 @@ export const WorkspacePage: React.FC = () => {
                     ×
                   </button>
                 )}
-              </button>
+              </div>
             );
           })}
           <button

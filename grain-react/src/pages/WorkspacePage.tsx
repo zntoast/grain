@@ -269,7 +269,7 @@ export const WorkspacePage: React.FC = () => {
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
         {/* Workspace Tabs */}
-        <div className="h-11 border-b border-gray-200 flex items-center gap-1 px-6 bg-white flex-shrink-0">
+        <div className="h-12 border-b border-[#e8e2e3] flex items-center gap-1 px-6 bg-[#fffefc] flex-shrink-0">
           {openWorkspaceIds.map((id) => {
             const ws = workspaces.find((w) => w.id === id);
             if (!ws) return null;
@@ -280,8 +280,8 @@ export const WorkspacePage: React.FC = () => {
                 onClick={() => navigate(`/workspace/${ws.id}`)}
                 className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-t-md text-sm font-medium relative transition-colors ${
                   isActive
-                    ? 'text-gray-900 bg-gray-100'
-                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                    ? 'text-[#b52f64] bg-[#fff0f5]'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-[#f7f3f1]'
                 }`}
               >
                 <span
@@ -318,14 +318,16 @@ export const WorkspacePage: React.FC = () => {
           })}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="w-8 h-8 rounded-md border border-dashed border-gray-300 bg-transparent text-gray-400 cursor-pointer text-base flex items-center justify-center hover:bg-gray-50 hover:text-gray-600 hover:border-gray-400 ml-1 flex-shrink-0"
+            className="control-press icon-control !w-8 !h-8 border border-dashed border-[#d9d0d3] bg-transparent text-gray-400 cursor-pointer text-base hover:bg-[#fff0f5] hover:text-accent hover:border-accent ml-1 flex-shrink-0"
+            aria-label="新建工作空间"
+            title="新建工作空间"
           >
             +
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-6 bg-[#faf9f7]">
           {/* Page Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
@@ -386,7 +388,7 @@ export const WorkspacePage: React.FC = () => {
 
           {/* Stats Row */}
           <div className="grid grid-cols-2 gap-3 mb-8">
-            <div className="bg-white border border-gray-200 rounded-xl p-4 card-hover card-accent-workspace">
+            <div className="surface-card p-4 card-hover">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-lg icon-bg-workspace flex items-center justify-center">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
@@ -395,7 +397,7 @@ export const WorkspacePage: React.FC = () => {
               </div>
               <div className="text-2xl font-semibold tracking-tight tabular-nums">{stats.groupCount}</div>
             </div>
-            <div className="bg-white border border-gray-200 rounded-xl p-4 card-hover card-accent-tag">
+            <div className="surface-card p-4 card-hover">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 rounded-lg icon-bg-tag flex items-center justify-center">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
@@ -408,7 +410,7 @@ export const WorkspacePage: React.FC = () => {
 
           {/* View Tabs */}
           <div className="flex items-center gap-3 mb-6">
-            <div className="flex gap-0.5 p-0.5 bg-white border border-gray-200 rounded-xl">
+            <div className="flex gap-0.5 p-1 bg-[#f1ecea] border border-[#e8e2e3] rounded-xl">
               <button
                 onClick={() => setViewType('all')}
                 className={`px-4 py-1.5 rounded-lg border-none text-sm cursor-pointer font transition-all ${
@@ -442,7 +444,7 @@ export const WorkspacePage: React.FC = () => {
             </div>
 
             {/* 布局切换 */}
-            <div className="flex gap-0.5 p-0.5 bg-white border border-gray-200 rounded-lg">
+            <div className="flex gap-0.5 p-1 bg-[#f1ecea] border border-[#e8e2e3] rounded-[10px]">
               <button
                 onClick={() => setLayoutMode('grid')}
                 title="网格视图"
@@ -482,8 +484,8 @@ export const WorkspacePage: React.FC = () => {
                     </span>
                   </h3>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
-                  <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+                <div className="surface-card overflow-hidden mb-4">
+                  <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
                     <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
                     <button
                       onClick={() => {
@@ -566,8 +568,8 @@ export const WorkspacePage: React.FC = () => {
                     </span>
                   </h3>
                 </div>
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
-                  <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+                <div className="surface-card overflow-hidden mb-4">
+                  <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
                     <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
                     <button
                       onClick={() => {
@@ -667,8 +669,8 @@ export const WorkspacePage: React.FC = () => {
                 </button>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
-                <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+              <div className="surface-card overflow-hidden mb-4">
+                <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
                   <span>{viewType === 'positive' ? '正向' : '负面'}提示词汇总（{allTags.length} 个词）</span>
                   <button onClick={handleCopyAll} className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10">
                     复制全部
@@ -736,7 +738,7 @@ export const WorkspacePage: React.FC = () => {
           )}
 
           {/* Footer Note */}
-          <div className="mt-6 bg-gray-50 rounded-lg p-4">
+          <div className="mt-6 surface-card bg-[#fdfaf8] p-4">
             <p className="text-xs text-gray-500">
               <strong>词组说明</strong> · 正向词组用于描述"要生成什么"，负面词组用于描述"不要生成什么"。
               类型切换仅改变 <code className="text-xs font-mono px-1 py-0.5 rounded bg-gray-100">workspace_groups.type</code>，组本身内容和关联不受影响。
@@ -760,7 +762,7 @@ export const WorkspacePage: React.FC = () => {
               value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               placeholder="例如：人物肖像"
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+              className="form-control w-full h-10 px-3 text-sm"
             />
           </div>
           <div>
@@ -770,7 +772,7 @@ export const WorkspacePage: React.FC = () => {
               value={newGroupDesc}
               onChange={(e) => setNewGroupDesc(e.target.value)}
               placeholder="简短描述该词组的用途"
-              className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+              className="form-control w-full h-10 px-3 text-sm"
             />
           </div>
           <div className="flex justify-end gap-2 pt-4">
@@ -799,7 +801,7 @@ export const WorkspacePage: React.FC = () => {
               value={newWorkspaceName}
               onChange={(e) => setNewWorkspaceName(e.target.value)}
               placeholder="例如：AI 绘画提示词库"
-              className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none bg-gray-50"
+              className="form-control w-full h-9 px-3 text-sm"
             />
           </div>
           <div>
@@ -808,7 +810,7 @@ export const WorkspacePage: React.FC = () => {
               value={newWorkspaceDesc}
               onChange={(e) => setNewWorkspaceDesc(e.target.value)}
               placeholder="简单描述这个工作空间的用途…"
-              className="w-full h-16 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none resize-none bg-gray-50"
+              className="form-control w-full h-16 px-3 py-2 text-sm resize-none"
             />
             <p className="text-xs text-gray-500 mt-1">创建后可以随时修改</p>
           </div>

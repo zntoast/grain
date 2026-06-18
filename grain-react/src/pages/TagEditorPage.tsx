@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Copy, Save, Trash2, ChevronRight, Plus, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Layout, Button, Modal, useToast, Toast } from '../components';
 import { CATEGORIES } from '../types';
+import { isSaveShortcut } from '../utils/saveShortcut';
 
 export const TagEditorPage: React.FC = () => {
   const { tagId } = useParams<{ tagId: string }>();
@@ -53,7 +54,7 @@ export const TagEditorPage: React.FC = () => {
   });
 
   // 保存
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!tagId || !en.trim()) return;
     updateTag(tagId, {
       en: en.trim(),
@@ -61,7 +62,18 @@ export const TagEditorPage: React.FC = () => {
       category,
     });
     showToast('已保存');
-  };
+  }, [category, en, showToast, tagId, updateTag, zh]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!isSaveShortcut(event)) return;
+      event.preventDefault();
+      handleSave();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleSave]);
 
   // 复制单词
   const handleCopy = () => {
@@ -104,7 +116,7 @@ export const TagEditorPage: React.FC = () => {
     <Layout>
       <div className="flex-1 flex flex-col min-h-0">
         {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
+        <header className="page-header px-6 py-4 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Link to="/tags" className="hover:text-accent">
@@ -130,7 +142,7 @@ export const TagEditorPage: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-6">
           <div className="max-w-xl mx-auto">
             {/* Form */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+            <div className="surface-card p-6 mb-6">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">基本信息</h3>
               <div className="space-y-4">
                 <div>
@@ -142,7 +154,7 @@ export const TagEditorPage: React.FC = () => {
                     value={en}
                     onChange={(e) => setEn(e.target.value)}
                     placeholder="例如：cinematic_lighting"
-                    className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none font-mono"
+                    className="form-control w-full h-10 px-3 text-sm font-mono"
                   />
                 </div>
                 <div>
@@ -152,7 +164,7 @@ export const TagEditorPage: React.FC = () => {
                     value={zh}
                     onChange={(e) => setZh(e.target.value)}
                     placeholder="例如：电影布光"
-                    className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                    className="form-control w-full h-10 px-3 text-sm"
                   />
                 </div>
                 <div>
@@ -160,7 +172,7 @@ export const TagEditorPage: React.FC = () => {
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                    className="form-control w-full h-10 px-3 text-sm"
                   >
                     {CATEGORIES.map((cat) => (
                       <option key={cat} value={cat}>
@@ -173,7 +185,7 @@ export const TagEditorPage: React.FC = () => {
             </div>
 
             {/* Parent Groups */}
-            <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+            <div className="surface-card p-6 mb-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-900">所属词组</h3>
                 <Button variant="ghost" size="sm" onClick={() => setShowLinkModal(true)}>
@@ -185,7 +197,7 @@ export const TagEditorPage: React.FC = () => {
                 {parentGroups.map((g) => (
                   <div
                     key={g.id}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-sm"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#e8e2e3] bg-[#fdfaf8] text-sm"
                   >
                     <Link to={`/group/${g.id}`} className="text-gray-900 hover:text-accent">
                       {g.name}

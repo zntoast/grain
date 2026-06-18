@@ -129,7 +129,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
                     value={newTagEn}
                     onChange={(e) => setNewTagEn(e.target.value)}
                     placeholder="如 cinematic_lighting"
-                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm font-mono focus:border-accent focus:outline-none"
+                    className="form-control w-full h-9 px-3 text-sm font-mono"
                   />
                 </div>
                 <div>
@@ -139,7 +139,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
                     value={newTagZh}
                     onChange={(e) => setNewTagZh(e.target.value)}
                     placeholder="如 电影布光"
-                    className="w-full h-9 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                    className="form-control w-full h-9 px-3 text-sm"
                   />
                 </div>
               </div>
@@ -147,7 +147,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
                 <select
                   value={newTagCategory}
                   onChange={(e) => setNewTagCategory(e.target.value)}
-                  className="h-9 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                  className="form-control h-9 px-3 text-sm"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -164,8 +164,8 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => setSelectedCategory(null)}
-              className={`px-2.5 py-1 rounded text-xs ${
-                selectedCategory === null ? 'bg-accent text-white' : 'bg-white border border-gray-200 text-gray-600'
+              className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
+                selectedCategory === null ? 'filter-chip-active' : ''
               }`}
             >
               全部
@@ -174,8 +174,8 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-2.5 py-1 rounded text-xs ${
-                  selectedCategory === cat ? 'bg-accent text-white' : 'bg-white border border-gray-200 text-gray-600'
+                className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
+                  selectedCategory === cat ? 'filter-chip-active' : ''
                 }`}
               >
                 {cat}

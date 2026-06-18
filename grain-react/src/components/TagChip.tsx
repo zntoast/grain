@@ -1,5 +1,6 @@
 import React from 'react';
 import { clsx } from 'clsx';
+import { X } from 'lucide-react';
 
 interface TagChipProps {
   en: string;
@@ -29,11 +30,11 @@ export const TagChip: React.FC<TagChipProps> = ({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       className={clsx(
-        'inline-flex items-center gap-1.5 rounded-full border-2 transition-all cursor-pointer',
+        'control-press inline-flex items-center gap-1.5 rounded-full border cursor-pointer',
         size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3.5 py-1.5 text-sm',
         selected
-          ? 'bg-accent text-white border-accent shadow-sm'
-          : 'bg-white border-gray-200 hover:border-accent/50 hover:bg-gray-50',
+          ? 'bg-[#fff0f5] text-[#b52f64] border-[#efacc4] shadow-sm'
+          : 'bg-[#fffefc] border-[#e8e2e3] text-gray-700 hover:border-[#e8b8c9] hover:bg-[#fff8fa]',
         className
       )}
     >
@@ -41,11 +42,11 @@ export const TagChip: React.FC<TagChipProps> = ({
         <span
           className={clsx(
             'w-4 h-4 rounded border flex items-center justify-center',
-            selected ? 'bg-white border-white' : 'border-gray-300 bg-white'
+            selected ? 'bg-accent border-accent' : 'border-gray-300 bg-white'
           )}
         >
           {selected && (
-            <svg className="w-2.5 h-2.5 text-accent" viewBox="0 0 12 12" fill="currentColor">
+            <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 12 12" fill="currentColor">
               <path d="M10.28 2.28L4 8.56 1.72 6.28A.75.75 0 00.28 7.72l3 3a.75.75 0 001.06 0l7-7a.75.75 0 00-1.06-1.06z" />
             </svg>
           )}
@@ -53,7 +54,7 @@ export const TagChip: React.FC<TagChipProps> = ({
       )}
       <span className="font-mono font-semibold">{en}</span>
       {zh && (
-        <span className={clsx('font-sans', selected ? 'text-white/80' : 'text-gray-500', size === 'sm' ? 'text-[10px]' : 'text-xs')}>
+        <span className={clsx('font-sans', selected ? 'text-[#c65b83]' : 'text-gray-500', size === 'sm' ? 'text-[10px]' : 'text-xs')}>
           ({zh})
         </span>
       )}
@@ -64,11 +65,13 @@ export const TagChip: React.FC<TagChipProps> = ({
             onRemove();
           }}
           className={clsx(
-            'ml-0.5 hover:opacity-100 transition-opacity',
-            selected ? 'text-white/60 opacity-70' : 'text-gray-400 opacity-50'
+            'ml-0.5 w-5 h-5 -mr-1 inline-flex items-center justify-center rounded-full hover:bg-black/5',
+            selected ? 'text-[#b52f64]' : 'text-gray-400'
           )}
+          aria-label={`移除 ${en}`}
+          title="移除"
         >
-          ×
+          <X size={12} />
         </button>
       )}
     </span>

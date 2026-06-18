@@ -115,7 +115,7 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
                   value={en}
                   onChange={(e) => setEn(e.target.value)}
                   placeholder="例如：cinematic_lighting"
-                  className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none font-mono"
+                  className="form-control w-full h-10 px-3 text-sm font-mono"
                 />
               </div>
               <div>
@@ -125,7 +125,7 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
                   value={zh}
                   onChange={(e) => setZh(e.target.value)}
                   placeholder="例如：电影布光"
-                  className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                  className="form-control w-full h-10 px-3 text-sm"
                 />
               </div>
               <div>
@@ -133,7 +133,7 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full h-10 px-3 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
+                  className="form-control w-full h-10 px-3 text-sm"
                 >
                   {CATEGORIES.map((cat) => (
                     <option key={cat} value={cat}>

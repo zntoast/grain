@@ -88,10 +88,13 @@ export interface StoreState {
   groupTags: GroupTags;
   folders: Folder[];
   groupFolderMap: GroupFolderMap;
+  workspaceFolders: Folder[];
+  workspaceFolderMap: Record<string, string>;
   
   // 计数器
   tagIdCounter: number;
   folderIdCounter: number;
+  workspaceFolderIdCounter: number;
   
   // UI 状态
   sidebarCollapsed: boolean;

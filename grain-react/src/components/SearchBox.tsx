@@ -15,8 +15,8 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`flex items-center gap-2 h-9 px-3 bg-gray-50 border border-gray-200 rounded-lg ${className}`}>
-      <Search size={14} className="text-gray-400 flex-shrink-0" />
+    <div className={`form-control flex items-center gap-2 h-9 px-3 ${className}`}>
+      <Search size={16} className="text-gray-400 flex-shrink-0" />
       <input
         type="text"
         value={value}
@@ -27,7 +27,9 @@ export const SearchBox: React.FC<SearchBoxProps> = ({
       {value && (
         <button
           onClick={() => onChange('')}
-          className="text-gray-400 hover:text-gray-600"
+          className="control-press w-7 h-7 -mr-2 inline-flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#f4efed]"
+          aria-label="清空搜索"
+          title="清空搜索"
         >
           <X size={14} />
         </button>

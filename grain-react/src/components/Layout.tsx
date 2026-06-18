@@ -67,7 +67,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [sidebarWidth, dragging]);
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[#faf9f7]">
       <div style={{ width: sidebarWidth, flexShrink: 0 }}>
         <Sidebar />
       </div>
@@ -75,9 +75,10 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* 拖拽分隔条 */}
       <div
         onMouseDown={onMouseDown}
-        className={`w-1.5 flex-shrink-0 cursor-col-resize transition-colors ${
-          dragging ? 'bg-accent' : 'bg-transparent hover:bg-accent/30'
-        }`}
+        className={`sidebar-resizer flex-shrink-0 cursor-col-resize ${dragging ? 'sidebar-resizer-active' : ''}`}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="调整侧边栏宽度"
       />
 
       <main className="flex-1 flex flex-col min-w-0">{children}</main>

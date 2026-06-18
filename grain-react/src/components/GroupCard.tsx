@@ -77,7 +77,7 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
           onDrop={(e) => onDrop(e, group.id)}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
-          className={`flex items-center gap-3 px-4 py-2 bg-[#f4efe8] border border-gray-200 rounded-lg hover:border-gray-300 transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
+          className={`surface-card flex items-center gap-3 px-4 py-2.5 transition-colors ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent ring-2 ring-accent/15' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
         >
           <div
             draggable
@@ -95,10 +95,10 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
           {onToggle && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggle(); }}
-              className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 flex-shrink-0 ${!disabled ? 'bg-green-400' : 'bg-gray-300'}`}
+              className={`control-press w-8 h-[18px] rounded-full transition-colors flex items-center px-0.5 flex-shrink-0 ${!disabled ? 'bg-emerald-400' : 'bg-gray-300'}`}
               title={disabled ? '点击启用' : '点击禁用'}
             >
-              <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3' : ''}`} />
+              <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3.5' : ''}`} />
             </button>
           )}
           <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md flex-shrink-0">
@@ -148,7 +148,7 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
         onDrop={(e) => onDrop(e, group.id)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        className={`bg-[#f4efe8] border border-gray-200 rounded-xl overflow-hidden card-accent-top card-hover transition-all ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent border-2' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
+        className={`surface-card overflow-hidden card-hover transition-all ${isDragging ? 'opacity-50' : ''} ${isDropOver ? 'border-accent ring-2 ring-accent/15' : ''} ${disabled ? 'opacity-50 grayscale' : ''}`}
       >
         <div className="px-4 pt-4 flex justify-between items-start">
           <div className="flex items-center gap-2 min-w-0">
@@ -169,17 +169,17 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
             {onToggle && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggle(); }}
-                className={`w-7 h-4 rounded-full transition-colors flex items-center px-0.5 ${!disabled ? 'bg-green-400' : 'bg-gray-300'}`}
+                className={`control-press w-8 h-[18px] rounded-full transition-colors flex items-center px-0.5 ${!disabled ? 'bg-emerald-400' : 'bg-gray-300'}`}
                 title={disabled ? '点击启用' : '点击禁用'}
               >
-                <div className={`w-3 h-3 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3' : ''}`} />
+                <div className={`w-3.5 h-3.5 rounded-full bg-white shadow-sm transition-transform ${!disabled ? 'translate-x-3.5' : ''}`} />
               </button>
             )}
             <span className="text-xs text-gray-400 bg-gray-100 px-2.5 py-0.5 rounded-full flex-shrink-0">{tagCount} 个词</span>
           </div>
         </div>
         <p className="text-xs text-gray-500 px-4 pt-1.5 leading-relaxed line-clamp-2">{group.desc}</p>
-        <div className="px-4 pt-3 pb-2 flex justify-between items-center border-t border-gray-100 mt-3">
+        <div className="px-4 py-3 flex justify-between items-center border-t border-[#eee7e8] mt-3 bg-[#fdfaf8]/70">
           <button onClick={() => onEdit(group.id)} className="text-xs text-accent hover:underline">管理提示词 →</button>
           <div className="flex gap-1.5 items-center">
             <div className="flex gap-0.5 p-0.5 bg-gray-100 rounded-md">

@@ -616,6 +616,29 @@ export const Sidebar: React.FC = () => {
   const toggleWsFolder = (id: string) => setOpenWsFolders((c) => ({ ...c, [id]: c[id] !== true }));
   const isWsFolderOpen = (id: string) => openWsFolders[id] === true;
 
+  // 自动展开当前选中项所在的目录
+  useEffect(() => {
+    // 词组：从 URL 提取 groupId，展开其所在目录
+    const groupMatch = location.pathname.match(/^\/group\/(.+)$/);
+    if (groupMatch) {
+      const groupId = groupMatch[1];
+      const folderId = groupFolderMap[groupId];
+      if (folderId) {
+        setOpenFolders((c) => ({ ...c, [folderId]: true }));
+      }
+    }
+
+    // 工作空间：从 URL 提取 workspaceId，展开其所在目录
+    const wsMatch = location.pathname.match(/^\/workspace\/(.+)$/);
+    if (wsMatch) {
+      const wsId = wsMatch[1];
+      const wsFolderId = workspaceFolderMap[wsId];
+      if (wsFolderId) {
+        setOpenWsFolders((c) => ({ ...c, [wsFolderId]: true }));
+      }
+    }
+  }, [location.pathname, groupFolderMap, workspaceFolderMap]);
+
   // ---- render helpers ----
   const renderGroupItem = (group: Group) => (
     <SortableGroupItem

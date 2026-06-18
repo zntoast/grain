@@ -257,18 +257,14 @@ export const AllTagsPage: React.FC = () => {
             return (
               <div
                 key={cat}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap ${
+                onClick={() => setSelectedCategory(cat)}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap cursor-pointer ${
                   selectedCategory === cat
                     ? 'bg-accent text-white'
                     : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
                 } ${isCustom ? 'pr-1.5' : ''}`}
               >
-                <button
-                  onClick={() => setSelectedCategory(cat)}
-                  className="flex-1"
-                >
-                  {cat}
-                </button>
+                <span className="flex-1">{cat}</span>
                 {isCustom && (
                   <button
                     onClick={(e) => {

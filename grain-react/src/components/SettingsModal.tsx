@@ -53,11 +53,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (!isOpen) return;
     const loadFileHandle = async () => {
+      // 只有在同步已开启的情况下才自动绑定文件
+      const isSyncEnabled = localStorage.getItem('grain_sync_enabled') === 'true';
+      if (!isSyncEnabled) {
+        setSyncFileName(null);
+        setSyncEnabled(false);
+        return;
+      }
       const h = await getSavedDataFileHandle();
       if (h) {
         setSyncFileName(h.name);
         setSyncEnabled(true);
-        localStorage.setItem('grain_sync_enabled', 'true');
+        // 自动绑定并启动同步
+        await bindDataFile(h);
       } else {
         setSyncFileName(null);
         setSyncEnabled(false);

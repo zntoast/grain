@@ -3,23 +3,26 @@ import { NOVELAI_TAGS } from './data/novelai-tags';
 
 // 默认工作空间
 export const DEFAULT_WORKSPACES: Workspace[] = [
-  { id: 'ws_main', name: '动漫创作', desc: '日式动漫、二次元风格，适合角色立绘、插画创作。', color: '300', createdAt: '2026-01-15' },
-  { id: 'ws_photo', name: '写实摄影', desc: '真实感、摄影风格，适合人像、产品、风景拍摄。', color: '255', createdAt: '2026-03-02' },
-  { id: 'ws_concept', name: '概念设计', desc: '科幻、奇幻、艺术风格，适合概念原画、游戏美术。', color: '170', createdAt: '2026-04-10' },
+  { id: 'ws_illust', name: '角色立绘', desc: '动漫插画、二次元角色，专注人物设计与表现。', color: '300', createdAt: '2026-01-15' },
+  { id: 'ws_scene', name: '场景插画', desc: '环境氛围、场景概念，专注背景与空间营造。', color: '170', createdAt: '2026-03-02' },
+  { id: 'ws_portrait', name: '人像写真', desc: '写实风格、摄影质感，专注人像与肖像表现。', color: '255', createdAt: '2026-04-10' },
+  { id: 'ws_concept', name: '概念原画', desc: '科幻奇幻、游戏影视，专注概念设计与世界观。', color: '45', createdAt: '2026-05-20' },
 ];
 
 // 默认词组
 export const DEFAULT_GROUPS: Group[] = [
-  { id: 'character', name: '角色设计', desc: '人物外观、服装、发型、表情等角色相关提示词。', color: '300' },
-  { id: 'scene', name: '场景环境', desc: '背景、地点、天气、时间等环境场景提示词。', color: '255' },
-  { id: 'style', name: '画风风格', desc: '动漫、写实、水彩、油画等绘画风格提示词。', color: '170' },
-  { id: 'lighting', name: '光影效果', desc: '自然光、人工光、氛围光等光影相关提示词。', color: '45' },
-  { id: 'composition', name: '构图视角', desc: '特写、全景、俯视、仰视等构图方式提示词。', color: '28' },
-  { id: 'quality', name: '画质增强', desc: '高清、细节、质感等提升画面质量的提示词。', color: '200' },
-  { id: 'pose', name: '姿势动作', desc: '站姿、坐姿、手势、动态等姿势动作提示词。', color: '150' },
-  { id: 'clothing', name: '服装搭配', desc: '校服、礼服、运动装、古装等服装相关提示词。', color: '120' },
-  { id: 'expression', name: '表情情绪', desc: '微笑、哭泣、生气、害羞等表情情绪提示词。', color: '320' },
-  { id: 'effect', name: '特效氛围', desc: '粒子、光效、魔法、科幻等视觉特效提示词。', color: '80' },
+  { id: 'subject', name: '人物主体', desc: '年龄、性别、身份、种族等人物基本信息。', color: '300' },
+  { id: 'appearance', name: '外貌特征', desc: '发型、发色、瞳色、体型等外貌细节。', color: '320' },
+  { id: 'outfit', name: '服装穿搭', desc: '衣着风格、配饰道具、装备武器等。', color: '120' },
+  { id: 'pose', name: '姿势动态', desc: '站姿坐姿、手势动作、身体动态等。', color: '150' },
+  { id: 'expression', name: '表情神态', desc: '面部表情、情绪氛围、眼神神态等。', color: '350' },
+  { id: 'scene', name: '场景背景', desc: '地点环境、天气时间、空间氛围等。', color: '170' },
+  { id: 'lighting', name: '光影布光', desc: '光源类型、光影效果、明暗氛围等。', color: '45' },
+  { id: 'camera', name: '镜头构图', desc: '视角景别、景深虚实、画面构图等。', color: '28' },
+  { id: 'style', name: '画风媒介', desc: '艺术风格、绘画技法、材质媒介等。', color: '200' },
+  { id: 'quality', name: '画面品质', desc: '分辨率、细节质感、整体质量等。', color: '220' },
+  { id: 'color', name: '色彩氛围', desc: '色调配色、色彩倾向、整体色感等。', color: '280' },
+  { id: 'effect', name: '特效装饰', desc: '粒子光效、自然元素、装饰点缀等。', color: '80' },
 ];
 
 // 默认 Tags
@@ -273,41 +276,60 @@ export const DEFAULT_TAGS: Tag[] = [
 
 // 默认工作空间-词组关联
 export const DEFAULT_WORKSPACE_GROUPS: WorkspaceGroups = {
-  ws_main: [
-    { groupId: 'character', type: 'positive' },
-    { groupId: 'scene', type: 'positive' },
-    { groupId: 'style', type: 'positive' },
+  ws_illust: [
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'appearance', type: 'positive' },
+    { groupId: 'outfit', type: 'positive' },
+    { groupId: 'pose', type: 'positive' },
     { groupId: 'expression', type: 'positive' },
-    { groupId: 'clothing', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
   ],
-  ws_photo: [
-    { groupId: 'character', type: 'positive' },
+  ws_scene: [
     { groupId: 'scene', type: 'positive' },
     { groupId: 'lighting', type: 'positive' },
-    { groupId: 'composition', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'color', type: 'positive' },
+    { groupId: 'effect', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  ws_portrait: [
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'appearance', type: 'positive' },
+    { groupId: 'outfit', type: 'positive' },
+    { groupId: 'pose', type: 'positive' },
+    { groupId: 'expression', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
     { groupId: 'quality', type: 'positive' },
   ],
   ws_concept: [
-    { groupId: 'character', type: 'positive' },
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'outfit', type: 'positive' },
     { groupId: 'scene', type: 'positive' },
-    { groupId: 'style', type: 'positive' },
     { groupId: 'lighting', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
     { groupId: 'effect', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
   ],
 };
 
 // 默认词组-Tag关联
 export const DEFAULT_GROUP_TAGS: GroupTags = {
-  character: ['na059', 'na060', 'na062', 'na065', 'na066', 'na067', 'na068', 'na069'],
-  scene: ['na027', 'na028', 'na029', 'na035', 'na036', 'na039', 'na041', 'na043'],
-  style: ['na045', 'na046', 'na048', 'na049', 'na053', 'na056', 'na057', 'na058'],
-  lighting: ['na010', 'na011', 'na012', 'na018', 'na019', 'na020', 'na021', 'na023'],
-  composition: ['na766', 'na767', 'na768', 'na769', 'na770', 'na771', 'na772', 'na773'],
-  quality: ['na001', 'na002', 'na005', 'na006', 'na007', 'na008', 'na009', 'na003'],
-  pose: ['na909', 'na910', 'na911', 'na912', 'na914', 'na915', 'na916', 'na920'],
-  clothing: ['na303', 'na304', 'na305', 'na306', 'na307', 'na314', 'na317', 'na318'],
-  expression: ['na544', 'na545', 'na546', 'na557', 'na561', 'na564', 'na581', 'na584'],
-  effect: ['na794', 'na795', 'na796', 'na797', 'na802', 'na803', 'na807', 'na808'],
+  subject: ['t01', 't02', 't03', 't04', 't05', 't37', 't38', 't39', 't40', 't41', 't42', 't43', 't44', 't45', 't46', 't47', 't48', 't49', 't50', 't51', 't52', 't53', 't54', 't55', 't56', 't57', 't58', 't59', 't60', 't61'],
+  appearance: ['na086', 'na087', 'na088', 'na089', 'na090', 'na092', 'na093', 'na094', 'na095', 'na096', 'na097', 'na098', 'na125', 'na127', 'na128', 'na129', 'na130', 'na131'],
+  outfit: ['na303', 'na304', 'na305', 'na306', 'na307', 'na314', 'na317', 'na318'],
+  pose: ['t197', 't198', 't199', 't200', 't201', 't202', 't203', 't204', 't205', 't206', 't207', 't208', 't209', 't210', 't211'],
+  expression: ['t182', 't183', 't184', 't185', 't186', 't187', 't188', 't189', 't190', 't191', 't192', 't193', 't194', 't195', 't196'],
+  scene: ['t27', 't28', 't29', 't30', 't31', 't32', 't142', 't143', 't144', 't145', 't146', 't147', 't148', 't149', 't150', 't151', 't152', 't153', 't154', 't155', 't156', 't157', 't158', 't159', 't160', 't161'],
+  lighting: ['t18', 't19', 't20', 't21', 't22', 't102', 't103', 't104', 't105', 't106', 't107', 't108', 't109', 't110', 't111', 't112', 't113', 't114', 't115', 't116', 't117', 't118', 't119', 't120', 't121'],
+  camera: ['t13', 't14', 't15', 't16', 't17', 't82', 't83', 't84', 't85', 't86', 't87', 't88', 't89', 't90', 't91', 't92', 't93', 't94', 't95', 't96', 't97', 't98', 't99', 't100', 't101'],
+  style: ['t06', 't07', 't08', 't09', 't10', 't11', 't12', 't62', 't63', 't64', 't65', 't66', 't67', 't68', 't69', 't70', 't71', 't72', 't73', 't74', 't75', 't76', 't77', 't78', 't79', 't80', 't81'],
+  quality: ['t23', 't24', 't25', 't26', 't122', 't123', 't124', 't125', 't126', 't127', 't128', 't129', 't130', 't131', 't132', 't133', 't134', 't135', 't136', 't137', 't138', 't139', 't140', 't141'],
+  color: ['t33', 't34', 't35', 't36', 't162', 't163', 't164', 't165', 't166', 't167', 't168', 't169', 't170', 't171', 't172', 't173', 't174', 't175', 't176', 't177', 't178', 't179', 't180', 't181'],
+  effect: ['t212', 't213', 't214', 't215', 't216', 't217', 't218', 't219', 't220', 't221', 't222', 't223', 't224', 't225', 't226', 't227', 't228', 't229', 't230', 't231', 't232', 't233', 't234', 't235', 't236'],
 };
 
 // 主题色选项

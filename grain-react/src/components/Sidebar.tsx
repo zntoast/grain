@@ -611,10 +611,10 @@ export const Sidebar: React.FC = () => {
   };
 
   const toggleSection = (s: 'workspaces' | 'groups') => setOpenSections((c) => ({ ...c, [s]: !c[s] }));
-  const toggleFolder = (id: string) => setOpenFolders((c) => ({ ...c, [id]: c[id] === false }));
-  const isFolderOpen = (id: string) => openFolders[id] !== false;
-  const toggleWsFolder = (id: string) => setOpenWsFolders((c) => ({ ...c, [id]: c[id] === false }));
-  const isWsFolderOpen = (id: string) => openWsFolders[id] !== false;
+  const toggleFolder = (id: string) => setOpenFolders((c) => ({ ...c, [id]: c[id] !== true }));
+  const isFolderOpen = (id: string) => openFolders[id] === true;
+  const toggleWsFolder = (id: string) => setOpenWsFolders((c) => ({ ...c, [id]: c[id] !== true }));
+  const isWsFolderOpen = (id: string) => openWsFolders[id] === true;
 
   // ---- render helpers ----
   const renderGroupItem = (group: Group) => (

@@ -1,12 +1,20 @@
-import type { Workspace, Group, Tag, WorkspaceGroups, GroupTags } from './types';
+import type { Workspace, Group, Tag, Folder, WorkspaceGroups, GroupTags, GroupFolderMap, WorkspaceFolderMap } from './types';
 import { NOVELAI_TAGS } from './data/novelai-tags';
 
 // 默认工作空间
 export const DEFAULT_WORKSPACES: Workspace[] = [
+  // 插画创作
   { id: 'ws_illust', name: '角色立绘', desc: '动漫插画、二次元角色，专注人物设计与表现。', color: '300', createdAt: '2026-01-15' },
-  { id: 'ws_scene', name: '场景插画', desc: '环境氛围、场景概念，专注背景与空间营造。', color: '170', createdAt: '2026-03-02' },
-  { id: 'ws_portrait', name: '人像写真', desc: '写实风格、摄影质感，专注人像与肖像表现。', color: '255', createdAt: '2026-04-10' },
-  { id: 'ws_concept', name: '概念原画', desc: '科幻奇幻、游戏影视，专注概念设计与世界观。', color: '45', createdAt: '2026-05-20' },
+  { id: 'ws_scene', name: '场景插画', desc: '环境氛围、场景概念，专注背景与空间营造。', color: '170', createdAt: '2026-01-20' },
+  { id: 'ws_cute', name: '萌系Q版', desc: '可爱风格、Q版大头，适合表情包、周边设计。', color: '320', createdAt: '2026-01-25' },
+  // 写实摄影
+  { id: 'ws_portrait', name: '人像写真', desc: '写实风格、摄影质感，专注人像与肖像表现。', color: '255', createdAt: '2026-03-02' },
+  { id: 'ws_landscape', name: '风光纪实', desc: '自然风光、人文纪实，专注风景与街拍。', color: '145', createdAt: '2026-03-10' },
+  { id: 'ws_product', name: '产品静物', desc: '商品展示、美食摄影，专注商业拍摄。', color: '28', createdAt: '2026-03-15' },
+  // 概念设计
+  { id: 'ws_concept', name: '概念原画', desc: '科幻奇幻、游戏影视，专注概念设计与世界观。', color: '45', createdAt: '2026-04-10' },
+  { id: 'ws_mecha', name: '科幻机甲', desc: '机甲、飞船、未来科技，专注硬核科幻设计。', color: '200', createdAt: '2026-04-15' },
+  { id: 'ws_fantasy', name: '奇幻魔法', desc: '魔法、龙、中世纪幻想，专注奇幻世界构建。', color: '280', createdAt: '2026-04-20' },
 ];
 
 // 默认词组
@@ -276,6 +284,7 @@ export const DEFAULT_TAGS: Tag[] = [
 
 // 默认工作空间-词组关联
 export const DEFAULT_WORKSPACE_GROUPS: WorkspaceGroups = {
+  // 插画创作
   ws_illust: [
     { groupId: 'subject', type: 'positive' },
     { groupId: 'appearance', type: 'positive' },
@@ -294,6 +303,16 @@ export const DEFAULT_WORKSPACE_GROUPS: WorkspaceGroups = {
     { groupId: 'effect', type: 'positive' },
     { groupId: 'quality', type: 'positive' },
   ],
+  ws_cute: [
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'appearance', type: 'positive' },
+    { groupId: 'outfit', type: 'positive' },
+    { groupId: 'expression', type: 'positive' },
+    { groupId: 'color', type: 'positive' },
+    { groupId: 'effect', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  // 写实摄影
   ws_portrait: [
     { groupId: 'subject', type: 'positive' },
     { groupId: 'appearance', type: 'positive' },
@@ -304,12 +323,45 @@ export const DEFAULT_WORKSPACE_GROUPS: WorkspaceGroups = {
     { groupId: 'camera', type: 'positive' },
     { groupId: 'quality', type: 'positive' },
   ],
+  ws_landscape: [
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
+    { groupId: 'color', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  ws_product: [
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
+    { groupId: 'color', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  // 概念设计
   ws_concept: [
     { groupId: 'subject', type: 'positive' },
     { groupId: 'outfit', type: 'positive' },
     { groupId: 'scene', type: 'positive' },
     { groupId: 'lighting', type: 'positive' },
     { groupId: 'camera', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'effect', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  ws_mecha: [
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
+    { groupId: 'camera', type: 'positive' },
+    { groupId: 'style', type: 'positive' },
+    { groupId: 'effect', type: 'positive' },
+    { groupId: 'quality', type: 'positive' },
+  ],
+  ws_fantasy: [
+    { groupId: 'subject', type: 'positive' },
+    { groupId: 'outfit', type: 'positive' },
+    { groupId: 'scene', type: 'positive' },
+    { groupId: 'lighting', type: 'positive' },
     { groupId: 'style', type: 'positive' },
     { groupId: 'effect', type: 'positive' },
     { groupId: 'quality', type: 'positive' },
@@ -334,3 +386,46 @@ export const DEFAULT_GROUP_TAGS: GroupTags = {
 
 // 主题色选项
 export const COLOR_OPTIONS = ['255', '170', '145', '45', '28', '300', '200'];
+
+// 默认词组目录
+export const DEFAULT_FOLDERS: Folder[] = [
+  { id: 'folder人物', name: '人物相关' },
+  { id: 'folder画面', name: '画面构成' },
+  { id: 'folder风格', name: '风格氛围' },
+];
+
+// 默认词组-目录映射
+export const DEFAULT_GROUP_FOLDER_MAP: GroupFolderMap = {
+  subject: 'folder人物',
+  appearance: 'folder人物',
+  outfit: 'folder人物',
+  pose: 'folder人物',
+  expression: 'folder人物',
+  scene: 'folder画面',
+  lighting: 'folder画面',
+  camera: 'folder画面',
+  style: 'folder风格',
+  quality: 'folder风格',
+  color: 'folder风格',
+  effect: 'folder风格',
+};
+
+// 默认工作空间目录
+export const DEFAULT_WORKSPACE_FOLDERS: Folder[] = [
+  { id: 'wsfolder插画', name: '插画创作' },
+  { id: 'wsfolder摄影', name: '写实摄影' },
+  { id: 'wsfolder概念', name: '概念设计' },
+];
+
+// 默认工作空间-目录映射
+export const DEFAULT_WORKSPACE_FOLDER_MAP: WorkspaceFolderMap = {
+  ws_illust: 'wsfolder插画',
+  ws_scene: 'wsfolder插画',
+  ws_cute: 'wsfolder插画',
+  ws_portrait: 'wsfolder摄影',
+  ws_landscape: 'wsfolder摄影',
+  ws_product: 'wsfolder摄影',
+  ws_concept: 'wsfolder概念',
+  ws_mecha: 'wsfolder概念',
+  ws_fantasy: 'wsfolder概念',
+};

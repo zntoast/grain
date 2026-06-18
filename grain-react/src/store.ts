@@ -6,6 +6,10 @@ import {
   DEFAULT_TAGS,
   DEFAULT_WORKSPACE_GROUPS,
   DEFAULT_GROUP_TAGS,
+  DEFAULT_FOLDERS,
+  DEFAULT_GROUP_FOLDER_MAP,
+  DEFAULT_WORKSPACE_FOLDERS,
+  DEFAULT_WORKSPACE_FOLDER_MAP,
   COLOR_OPTIONS,
 } from './constants';
 import {
@@ -56,10 +60,14 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
     data.groupTags && Object.keys(data.groupTags).length > 0
       ? data.groupTags
       : deepClone(DEFAULT_GROUP_TAGS),
-  folders: normalizeFolders(data.folders),
-  groupFolderMap: data.groupFolderMap || {},
-  workspaceFolders: normalizeFolders(data.workspaceFolders),
-  workspaceFolderMap: data.workspaceFolderMap || {},
+  folders: data.folders?.length ? normalizeFolders(data.folders) : deepClone(DEFAULT_FOLDERS),
+  groupFolderMap: data.groupFolderMap && Object.keys(data.groupFolderMap).length > 0
+    ? data.groupFolderMap
+    : deepClone(DEFAULT_GROUP_FOLDER_MAP),
+  workspaceFolders: data.workspaceFolders?.length ? normalizeFolders(data.workspaceFolders) : deepClone(DEFAULT_WORKSPACE_FOLDERS),
+  workspaceFolderMap: data.workspaceFolderMap && Object.keys(data.workspaceFolderMap).length > 0
+    ? data.workspaceFolderMap
+    : deepClone(DEFAULT_WORKSPACE_FOLDER_MAP),
   tagIdCounter: data.tagIdCounter || 100,
   folderIdCounter: data.folderIdCounter || 10,
   workspaceFolderIdCounter: data.workspaceFolderIdCounter || 10,
@@ -76,10 +84,10 @@ export const useStore = create<StoreState>((set, get) => ({
   tags: deepClone(DEFAULT_TAGS),
   workspaceGroups: deepClone(DEFAULT_WORKSPACE_GROUPS),
   groupTags: deepClone(DEFAULT_GROUP_TAGS),
-  folders: [],
-  groupFolderMap: {},
-  workspaceFolders: [],
-  workspaceFolderMap: {},
+  folders: deepClone(DEFAULT_FOLDERS),
+  groupFolderMap: deepClone(DEFAULT_GROUP_FOLDER_MAP),
+  workspaceFolders: deepClone(DEFAULT_WORKSPACE_FOLDERS),
+  workspaceFolderMap: deepClone(DEFAULT_WORKSPACE_FOLDER_MAP),
   tagIdCounter: 100,
   folderIdCounter: 10,
   workspaceFolderIdCounter: 10,

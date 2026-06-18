@@ -6,7 +6,7 @@ HOST_PORT = 8080
 CONTAINER_PORT = 80
 
 build:
-	docker build --network=host -t $(IMAGE_NAME) ./grain-react
+	docker build -t $(IMAGE_NAME) ./grain-react
 
 run: build
 	docker run -d --name $(CONTAINER_NAME) -p $(HOST_PORT):$(CONTAINER_PORT) $(IMAGE_NAME)

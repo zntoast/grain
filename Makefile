@@ -56,32 +56,33 @@ LOG_FILE := .serve.log
 build-native:
 	cd grain-react && npm run build
 
+# 先安装 serve（只需一次）
+install-serve:
+	@npm install -g serve --registry=https://registry.npmmirror.com --silent
+
 # 后台启动（终端关闭不影响）
-i: build-native
-	@nohup npx serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
-	@echo $$! > $(PID_FILE)
+i: install-serve build-native
+	@-kill $$(lsof -ti:$(NATIVE_PORT)) 2>/dev/null || true
+	@setsid serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
 	@sleep 1
-	@echo "✓ http://localhost:$(NATIVE_PORT) (PID $$(cat $(PID_FILE)))"
+	@echo "✓ http://localhost:$(NATIVE_PORT)"
 
 # 停止
 s:
-	@if [ -f $(PID_FILE) ]; then \
-		kill $$(cat $(PID_FILE)) 2>/dev/null || true; \
-		rm -f $(PID_FILE); \
-		echo "✓ Stopped"; \
-	else \
-		echo "Not running"; \
-	fi
+	@-kill $$(lsof -ti:$(NATIVE_PORT)) 2>/dev/null || true
+	@echo "✓ Stopped"
 
 # 重启：拉取最新代码 + 重新构建 + 后台启动
 rs: s
 	@git pull
 	@cd grain-react && npm install --registry=https://registry.npmmirror.com --silent
 	@cd grain-react && npm run build
-	@nohup npx serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
-	@echo $$! > $(PID_FILE)
+	@setsid serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
 	@sleep 1
-	@echo "✓ http://localhost:$(NATIVE_PORT) (PID $$(cat $(PID_FILE)))"
+	@echo "✓ http://localhost:$(NATIVE_PORT)"
+
+# 重启（不拉取代码，仅重新构建）
+r: s i
 
 # 查看日志
 l:

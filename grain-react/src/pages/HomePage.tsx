@@ -4,7 +4,7 @@ import { LayoutDashboard, FolderOpen, Tag, ArrowRight, Sparkles, FilePlus, Folde
 import { useStore } from '../store';
 import { bindDataFile } from '../store';
 import { Modal, Button } from '../components';
-import { createDataFile, chooseExistingDataFile, getSavedDataFileHandle, readSnapshotFromFile, writeSnapshotToFile } from '../services/localDataFile';
+import { createDataFile, chooseExistingDataFile, getSavedDataFileHandle, readSnapshotFromFile, readSnapshotFromUpload, writeSnapshotToFile } from '../services/localDataFile';
 
 export const HomePage: React.FC = () => {
   const { workspaces, groups, tags, exportData, importData, setHasCompletedOnboarding } = useStore();
@@ -13,6 +13,7 @@ export const HomePage: React.FC = () => {
   const [showSyncReminder, setShowSyncReminder] = useState(false);
   const [loading, setLoading] = useState(false);
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const features = [
     {
@@ -64,8 +65,15 @@ export const HomePage: React.FC = () => {
     try {
       let fileHandle = await getSavedDataFileHandle();
       if (!fileHandle) {
-        // 没有保存过的文件，让用户选择一个已有的文件
-        fileHandle = await chooseExistingDataFile();
+        // 尝试使用 File System Access API 让用户选择文件
+        try {
+          fileHandle = await chooseExistingDataFile();
+        } catch {
+          // 浏览器不支持，回退到文件输入
+          fileInputRef.current?.click();
+          setLoading(false);
+          return;
+        }
       }
       if (fileHandle) {
         const data = await readSnapshotFromFile(fileHandle);
@@ -78,6 +86,23 @@ export const HomePage: React.FC = () => {
       console.error('Failed to load existing workspace:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setLoading(true);
+    try {
+      const data = await readSnapshotFromUpload(file);
+      importData(data);
+      setHasCompletedOnboarding(true);
+      setShowWorkModeModal(false);
+      navigate(`/workspace/${workspaces[0]?.id || 'ws_illust'}`);
+    } catch (error) {
+      console.error('Failed to import file:', error);
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -304,6 +329,15 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </Modal>
+
+      {/* 隐藏的文件上传 input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={(e) => handleFileUpload(e.target.files?.[0])}
+      />
     </div>
   );
 };

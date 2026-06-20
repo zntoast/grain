@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, X, ZoomIn, Link } from 'lucide-react';
+import { Upload, X, ZoomIn } from 'lucide-react';
 import { saveImage, loadImage, deleteImage } from '../services/imageStorage';
 
 interface ImagePreviewProps {
@@ -10,8 +10,6 @@ interface ImagePreviewProps {
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
   const [displayUrl, setDisplayUrl] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [urlValue, setUrlValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -51,14 +49,6 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
     onImageChange?.(id);
   };
 
-  const handleUrlSubmit = () => {
-    if (urlValue.trim()) {
-      onImageChange?.(urlValue.trim());
-      setShowUrlInput(false);
-      setUrlValue('');
-    }
-  };
-
   const handleRemove = async () => {
     if (initialUrl && initialUrl.startsWith('img_')) {
       await deleteImage(initialUrl);
@@ -96,47 +86,16 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
               </button>
             </>
           ) : (
-            <div className="flex flex-col items-center justify-center gap-2 py-8">
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex flex-col items-center gap-1 hover:bg-pink-50/50 transition-colors p-4 rounded-xl w-full"
-                aria-label="上传预览图"
-              >
-                <Upload size={20} className="text-pink-400" />
-                <span className="text-xs text-gray-500">上传图片</span>
-              </button>
-              <span className="text-xs text-gray-300">或</span>
-              <button
-                onClick={() => setShowUrlInput(true)}
-                className="flex items-center gap-1.5 text-xs text-pink-400 hover:text-pink-500"
-              >
-                <Link size={12} />
-                输入图片链接
-              </button>
-            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex flex-col items-center justify-center gap-1 py-8 w-full hover:bg-pink-50/50 transition-colors rounded-xl"
+              aria-label="上传预览图"
+            >
+              <Upload size={20} className="text-pink-400" />
+              <span className="text-xs text-gray-500">上传图片</span>
+            </button>
           )}
         </div>
-
-        {showUrlInput && (
-          <div className="border-t border-pink-100 p-2 flex gap-2">
-            <input
-              type="text"
-              value={urlValue}
-              onChange={(e) => setUrlValue(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="flex-1 h-8 px-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-accent"
-              onKeyDown={(e) => { if (e.key === 'Enter') handleUrlSubmit(); }}
-              autoFocus
-            />
-            <button
-              onClick={handleUrlSubmit}
-              disabled={!urlValue.trim()}
-              className="h-8 px-3 text-xs font-medium text-white bg-accent rounded-lg hover:bg-[#d94d82] disabled:opacity-40"
-            >
-              确认
-            </button>
-          </div>
-        )}
 
         <input
           ref={fileInputRef}

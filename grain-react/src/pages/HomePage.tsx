@@ -284,7 +284,7 @@ export const HomePage: React.FC = () => {
             <div>
               <h3 className="font-semibold text-gray-900">临时使用</h3>
               <p className="text-xs text-gray-500 mt-1">
-                不保存数据，关闭浏览器后内容将丢失
+                数据保存在浏览器中，关闭浏览器不清除
               </p>
             </div>
           </button>

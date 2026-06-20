@@ -1,18 +1,17 @@
-.PHONY: build run stop restart clean shell logs rebuild dev install
+.PHONY: build run stop restart clean shell logs rebuild dev install start stop-server restart-server
 
 IMAGE_NAME ?= grain
 CONTAINER_NAME ?= grain-app
 HOST_PORT ?= 8080
 CONTAINER_PORT ?= 80
 
-# 可替换为其他国内镜像源
-# DOCKER_REGISTRY ?= docker.xuanyuan.me/library
-# DOCKER_REGISTRY ?= docker.m.daocloud.io
+# ============================================================
+# Docker
+# ============================================================
 
 build:
 	docker build -t $(IMAGE_NAME) ./grain-react
 
-# 如果在国内构建慢，可通过 build-mirror 一键指定镜像源
 build-mirror:
 	docker build \
 		--build-arg NPM_REGISTRY=https://registry.npmmirror.com \
@@ -45,9 +44,35 @@ logs:
 
 rebuild: clean build run
 
-# ---- 开发相关 ----
+# ============================================================
+# 原生 Linux 部署（不使用 Docker）
+# ============================================================
+
 install:
 	cd grain-react && npm install --registry=https://registry.npmmirror.com
 
 dev:
 	cd grain-react && npm run dev
+
+NATIVE_PORT ?= 8080
+PID_FILE := .serve.pid
+
+start: build-native
+	@echo "Starting on port $(NATIVE_PORT)..."
+	npx serve -l $(NATIVE_PORT) -s grain-react/dist &
+	@echo $$! > $(PID_FILE)
+	@echo "Running at http://localhost:$(NATIVE_PORT) (PID $$(cat $(PID_FILE)))"
+
+build-native:
+	cd grain-react && npm run build
+
+stop-server:
+	@if [ -f $(PID_FILE) ]; then \
+		kill $$(cat $(PID_FILE)) 2>/dev/null || true; \
+		rm -f $(PID_FILE); \
+		echo "Stopped"; \
+	else \
+		echo "No PID file found"; \
+	fi
+
+restart-server: stop-server start

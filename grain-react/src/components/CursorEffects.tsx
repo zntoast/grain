@@ -1,14 +1,15 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store';
 
-interface CursorParticle {
-  id: number;
+interface Particle {
   x: number;
   y: number;
-  dx: number;
-  dy: number;
+  vx: number;
+  vy: number;
   size: number;
   hue: number;
+  life: number;
+  maxLife: number;
   kind: 'trail' | 'click';
 }
 
@@ -21,166 +22,119 @@ const supportsCursorEffects = () => {
 
 export const CursorEffects: React.FC = () => {
   const mode = useStore((s) => s.cursorMode);
-  const [isSupported, setIsSupported] = useState(false);
-  const [isPressed, setIsPressed] = useState(false);
-  const [particles, setParticles] = useState<CursorParticle[]>([]);
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const particleIdRef = useRef(0);
-  const lastTrailTimeRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  const latestPointRef = useRef({ x: -80, y: -80 });
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  const mouseRef = useRef({ x: -100, y: -100 });
+  const trailTimerRef = useRef(0);
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
-    const updateSupport = () => setIsSupported(supportsCursorEffects());
-    updateSupport();
+    if (!supportsCursorEffects() || mode === 'off') return;
 
-    const pointerQuery = window.matchMedia('(pointer: fine)');
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
-    pointerQuery.addEventListener('change', updateSupport);
-    motionQuery.addEventListener('change', updateSupport);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    return () => {
-      pointerQuery.removeEventListener('change', updateSupport);
-      motionQuery.removeEventListener('change', updateSupport);
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
     };
-  }, []);
+    resize();
+    window.addEventListener('resize', resize);
 
-  useEffect(() => {
-    if (!isSupported || mode === 'off') {
-      document.body.classList.remove('anime-cursor-enabled');
-      return;
-    }
-
-    document.body.classList.add('anime-cursor-enabled');
-
-    return () => {
-      document.body.classList.remove('anime-cursor-enabled');
-    };
-  }, [isSupported, mode]);
-
-  useEffect(() => {
-    if (!isSupported || mode === 'off') return;
-
-    const moveCursor = () => {
-      rafRef.current = null;
-      const cursor = cursorRef.current;
-      if (!cursor) return;
-      const { x, y } = latestPointRef.current;
-      cursor.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-    };
-
-    const queueCursorMove = () => {
-      if (rafRef.current !== null) return;
-      rafRef.current = window.requestAnimationFrame(moveCursor);
-    };
-
-    const addParticles = (nextParticles: CursorParticle[]) => {
-      setParticles((current) => [...current.slice(-34), ...nextParticles]);
-      window.setTimeout(() => {
-        const ids = new Set(nextParticles.map((particle) => particle.id));
-        setParticles((current) => current.filter((particle) => !ids.has(particle.id)));
-      }, 720);
-    };
-
-    const handlePointerMove = (event: PointerEvent) => {
-      if (event.pointerType && event.pointerType !== 'mouse') return;
-      latestPointRef.current = { x: event.clientX, y: event.clientY };
-      queueCursorMove();
-
-      const now = performance.now();
-      if (now - lastTrailTimeRef.current < 28) return;
-      lastTrailTimeRef.current = now;
-
-      addParticles([
-        {
-          id: particleIdRef.current++,
-          x: event.clientX,
-          y: event.clientY,
-          dx: -4 + Math.random() * 8,
-          dy: 8 + Math.random() * 8,
-          size: 4 + Math.random() * 4,
-          hue: 205 + Math.random() * 80,
-          kind: 'trail',
-        },
-      ]);
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      if (event.pointerType && event.pointerType !== 'mouse') return;
-      setIsPressed(true);
-      const count = mode === 'burst' ? 14 : 8;
-      const nextParticles = Array.from({ length: count }, (_, index) => {
-        const angle = (Math.PI * 2 * index) / count + Math.random() * 0.35;
-        const distance = mode === 'burst' ? 24 + Math.random() * 26 : 12 + Math.random() * 18;
-        return {
-          id: particleIdRef.current++,
-          x: event.clientX,
-          y: event.clientY,
-          dx: Math.cos(angle) * distance,
-          dy: Math.sin(angle) * distance,
-          size: mode === 'burst' ? 4 + Math.random() * 6 : 5 + Math.random() * 5,
-          hue: mode === 'burst' ? 290 + Math.random() * 55 : 190 + Math.random() * 90,
-          kind: 'click' as const,
-        };
-      });
-      addParticles(nextParticles);
-    };
-
-    const handlePointerUp = () => setIsPressed(false);
-
-    window.addEventListener('pointermove', handlePointerMove, { passive: true });
-    window.addEventListener('pointerdown', handlePointerDown, { passive: true });
-    window.addEventListener('pointerup', handlePointerUp, { passive: true });
-    window.addEventListener('pointercancel', handlePointerUp, { passive: true });
-
-    return () => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('pointerup', handlePointerUp);
-      window.removeEventListener('pointercancel', handlePointerUp);
-      if (rafRef.current !== null) {
-        window.cancelAnimationFrame(rafRef.current);
+    const addParticles = (x: number, y: number, count: number, kind: 'trail' | 'click', spread: number) => {
+      for (let i = 0; i < count; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * spread;
+        particlesRef.current.push({
+          x, y,
+          vx: Math.cos(angle) * dist,
+          vy: Math.sin(angle) * dist - (kind === 'trail' ? 2 : 0),
+          size: 2 + Math.random() * (kind === 'click' ? 5 : 3),
+          hue: kind === 'click' ? 290 + Math.random() * 55 : 205 + Math.random() * 80,
+          life: 0,
+          maxLife: kind === 'click' ? 40 : 30,
+          kind,
+        });
       }
     };
-  }, [isSupported, mode]);
 
-  if (!isSupported) return null;
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const particles = particlesRef.current;
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.life++;
+        if (p.life > p.maxLife) { particles.splice(i, 1); continue; }
+
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.12;
+        p.vx *= 0.96;
+
+        const progress = p.life / p.maxLife;
+        const alpha = 1 - progress;
+        const size = p.size * (1 - progress * 0.5);
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = `hsla(${p.hue}, 92%, 70%, ${alpha})`;
+        ctx.fill();
+
+        if (p.kind === 'click') {
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = `hsla(${p.hue}, 92%, 70%, ${alpha * 0.5})`;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    const onMove = (e: PointerEvent) => {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      mouseRef.current = { x: e.clientX, y: e.clientY };
+
+      const now = Date.now();
+      if (now - trailTimerRef.current > 30) {
+        trailTimerRef.current = now;
+        addParticles(e.clientX, e.clientY, 1, 'trail', 6);
+      }
+    };
+
+    const onDown = (e: PointerEvent) => {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      const count = mode === 'burst' ? 14 : 8;
+      const spread = mode === 'burst' ? 50 : 30;
+      addParticles(e.clientX, e.clientY, count, 'click', spread);
+    };
+
+    animate();
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    window.addEventListener('pointerdown', onDown, { passive: true });
+
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('resize', resize);
+      particlesRef.current = [];
+    };
+  }, [mode]);
+
+  if (!supportsCursorEffects() || mode === 'off') return null;
 
   return (
-    <>
-      {mode !== 'off' && (
-        <>
-          <div
-            ref={cursorRef}
-            className={`anime-cursor ${isPressed ? 'anime-cursor--pressed' : ''}`}
-            aria-hidden="true"
-          >
-            <div className="anime-cursor__wand" />
-            <div className="anime-cursor__star anime-cursor__star--one" />
-            <div className="anime-cursor__star anime-cursor__star--two" />
-          </div>
-          <div className="anime-cursor-particles" aria-hidden="true">
-            {particles.map((particle) => (
-              <span
-                key={particle.id}
-                className={`anime-cursor-particle anime-cursor-particle--${particle.kind}`}
-                style={
-                  {
-                    left: particle.x,
-                    top: particle.y,
-                    width: particle.size,
-                    height: particle.size,
-                    '--particle-x': `${particle.dx}px`,
-                    '--particle-y': `${particle.dy}px`,
-                    '--particle-hue': particle.hue,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          </div>
-        </>
-      )}
-
-    </>
+    <canvas
+      ref={canvasRef}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        pointerEvents: 'none',
+      }}
+    />
   );
 };

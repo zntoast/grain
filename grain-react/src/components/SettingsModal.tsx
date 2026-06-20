@@ -210,7 +210,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900">临时使用</div>
-                <div className="text-xs text-gray-500">数据存浏览器，更换设备会丢失</div>
+                <div className="text-xs text-gray-500">数据存浏览器，更换设备会丢失。手动清除：DevTools → Application → Local Storage</div>
               </div>
               {!syncEnabled && (
                 <span className="text-xs text-gray-500 font-medium">当前</span>

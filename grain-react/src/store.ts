@@ -19,6 +19,7 @@ import {
   type GrainFileHandle,
 } from './services/localDataFile';
 
+// 数据存储 Key（清除方式：浏览器 DevTools → Application → Local Storage → 删除此 key）
 const STORAGE_KEY = 'grain_prompt_manager_data';
 
 // 生成唯一 ID

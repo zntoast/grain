@@ -1,4 +1,4 @@
-.PHONY: build run stop restart clean shell logs rebuild dev install start stop-server restart-server
+.PHONY: build run stop restart clean shell logs rebuild dev install i r rs s
 
 IMAGE_NAME ?= grain
 CONTAINER_NAME ?= grain-app
@@ -11,11 +11,6 @@ CONTAINER_PORT ?= 80
 
 build:
 	docker build -t $(IMAGE_NAME) ./grain-react
-
-build-mirror:
-	docker build \
-		--build-arg NPM_REGISTRY=https://registry.npmmirror.com \
-		-t $(IMAGE_NAME) ./grain-react
 
 run: build
 	docker run -d \
@@ -56,23 +51,31 @@ dev:
 
 NATIVE_PORT ?= 8080
 PID_FILE := .serve.pid
-
-start: build-native
-	@echo "Starting on port $(NATIVE_PORT)..."
-	npx serve -l $(NATIVE_PORT) -s grain-react/dist &
-	@echo $$! > $(PID_FILE)
-	@echo "Running at http://localhost:$(NATIVE_PORT) (PID $$(cat $(PID_FILE)))"
+LOG_FILE := .serve.log
 
 build-native:
 	cd grain-react && npm run build
 
-stop-server:
+# 后台启动（终端关闭不影响）
+i: build-native
+	@nohup npx serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
+	@echo $$! > $(PID_FILE)
+	@sleep 1
+	@echo "✓ http://localhost:$(NATIVE_PORT) (PID $$(cat $(PID_FILE)))"
+
+# 停止
+s:
 	@if [ -f $(PID_FILE) ]; then \
 		kill $$(cat $(PID_FILE)) 2>/dev/null || true; \
 		rm -f $(PID_FILE); \
-		echo "Stopped"; \
+		echo "✓ Stopped"; \
 	else \
-		echo "No PID file found"; \
+		echo "Not running"; \
 	fi
 
-restart-server: stop-server start
+# 重启
+rs: s i
+
+# 查看日志
+l:
+	@cat $(LOG_FILE) 2>/dev/null || echo "No logs"

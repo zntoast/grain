@@ -34,8 +34,8 @@ export const DEFAULT_GROUPS: Group[] = [
   { id: 'r18negative', name: 'R18反提示', desc: 'R18 相关内容，作为负面提示词使用，避免生成不当内容。', color: '80' },
 ];
 
-// 默认 Tags
-export const DEFAULT_TAGS: Tag[] = [
+// 手动整理的 Tags
+const MANUAL_TAGS: Tag[] = [
   // 角色
   { id: 't01', en: '1girl', zh: '一个女孩', category: '角色' },
   { id: 't02', en: '1boy', zh: '一个男孩', category: '角色' },
@@ -502,8 +502,16 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: 'r18219', en: 'vaginal', zh: '阴道', category: 'R18' },
   { id: 'r18220', en: 'xray', zh: '透视', category: 'R18' },
   { id: 'r18221', en: 'wakamezake', zh: '酒倒阴部', category: 'R18' },
-  // NovelAI 提示词
-  ...NOVELAI_TAGS,
+];
+
+// 去重：标记已存在的 (en, category) 组合
+const EXISTING_TAG_KEYS = new Set(MANUAL_TAGS.map(t => `${t.en}|${t.category}`));
+
+// 默认 Tags = 手动整理 + 过滤后的 NovelAI 提示词
+export const DEFAULT_TAGS: Tag[] = [
+  ...MANUAL_TAGS,
+  // NovelAI 提示词（自动过滤掉与手动标签重复的）
+  ...NOVELAI_TAGS.filter(t => !EXISTING_TAG_KEYS.has(`${t.en}|${t.category}`)),
 ];
 
 // 默认工作空间-词组关联

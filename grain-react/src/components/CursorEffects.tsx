@@ -43,23 +43,6 @@ export const CursorEffects: React.FC = () => {
     resize();
     window.addEventListener('resize', resize);
 
-    const addParticles = (x: number, y: number, count: number, kind: 'trail' | 'click', spread: number) => {
-      for (let i = 0; i < count; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const dist = Math.random() * spread;
-        particlesRef.current.push({
-          x, y,
-          vx: Math.cos(angle) * dist,
-          vy: Math.sin(angle) * dist - (kind === 'trail' ? 2 : 0),
-          size: 2 + Math.random() * (kind === 'click' ? 5 : 3),
-          hue: kind === 'click' ? 290 + Math.random() * 55 : 205 + Math.random() * 80,
-          life: 0,
-          maxLife: kind === 'click' ? 40 : 30,
-          kind,
-        });
-      }
-    };
-
     const animate = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -78,20 +61,45 @@ export const CursorEffects: React.FC = () => {
         const alpha = 1 - progress;
         const size = p.size * (1 - progress * 0.5);
 
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
-        ctx.fillStyle = `hsla(${p.hue}, 92%, 70%, ${alpha})`;
-        ctx.fill();
+        ctx.save();
+        ctx.globalAlpha = alpha;
 
         if (p.kind === 'click') {
-          ctx.shadowBlur = 12;
-          ctx.shadowColor = `hsla(${p.hue}, 92%, 70%, ${alpha * 0.5})`;
+          // 星芒（spark）：四角星；花火（burst）：六角星
+          ctx.translate(p.x, p.y);
+          ctx.rotate(progress * Math.PI);
+          const points = mode === 'burst' ? 6 : 4;
+          drawStar(ctx, 0, 0, size * 0.4, size, points);
+          ctx.fillStyle = `hsl(${p.hue}, 92%, 70%)`;
+          ctx.fill();
+          ctx.shadowBlur = 15;
+          ctx.shadowColor = `hsla(${p.hue}, 92%, 70%, ${alpha * 0.6})`;
           ctx.fill();
           ctx.shadowBlur = 0;
+        } else {
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, size, 0, Math.PI * 2);
+          ctx.fillStyle = `hsl(${p.hue}, 92%, 70%)`;
+          ctx.fill();
         }
+
+        ctx.restore();
       }
 
       rafRef.current = requestAnimationFrame(animate);
+    };
+
+    const drawStar = (ctx: CanvasRenderingContext2D, cx: number, cy: number, inner: number, outer: number, points: number) => {
+      const step = Math.PI / points;
+      ctx.beginPath();
+      for (let i = 0; i < points * 2; i++) {
+        const r = i % 2 === 0 ? outer : inner;
+        const a = i * step - Math.PI / 2;
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      }
+      ctx.closePath();
     };
 
     const onMove = (e: PointerEvent) => {
@@ -101,15 +109,37 @@ export const CursorEffects: React.FC = () => {
       const now = Date.now();
       if (now - trailTimerRef.current > 30) {
         trailTimerRef.current = now;
-        addParticles(e.clientX, e.clientY, 1, 'trail', 6);
+        const hue = mode === 'burst' ? 280 + Math.random() * 60 : 190 + Math.random() * 70;
+        particlesRef.current.push({
+          x: e.clientX, y: e.clientY,
+          vx: -3 + Math.random() * 6,
+          vy: 6 + Math.random() * 8,
+          size: 2 + Math.random() * 3,
+          hue,
+          life: 0, maxLife: 30,
+          kind: 'trail',
+        });
       }
     };
 
     const onDown = (e: PointerEvent) => {
       if (e.pointerType && e.pointerType !== 'mouse') return;
-      const count = mode === 'burst' ? 14 : 8;
-      const spread = mode === 'burst' ? 50 : 30;
-      addParticles(e.clientX, e.clientY, count, 'click', spread);
+      const count = mode === 'burst' ? 16 : 10;
+      const spread = mode === 'burst' ? 60 : 35;
+      const hueBase = mode === 'burst' ? 280 : 190;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.3;
+        const dist = Math.random() * spread;
+        particlesRef.current.push({
+          x: e.clientX, y: e.clientY,
+          vx: Math.cos(angle) * dist,
+          vy: Math.sin(angle) * dist,
+          size: 3 + Math.random() * (mode === 'burst' ? 6 : 4),
+          hue: hueBase + Math.random() * 60,
+          life: 0, maxLife: 40,
+          kind: 'click',
+        });
+      }
     };
 
     animate();

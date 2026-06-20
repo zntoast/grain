@@ -88,7 +88,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
           ) : (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex flex-col items-center justify-center gap-1 py-8 w-full hover:bg-pink-50/50 transition-colors rounded-xl"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1 hover:bg-pink-50/50 transition-colors rounded-xl"
               aria-label="上传预览图"
             >
               <Upload size={20} className="text-pink-400" />

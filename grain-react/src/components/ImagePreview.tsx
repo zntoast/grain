@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, ZoomIn, Link } from 'lucide-react';
+import { saveImage, loadImage, deleteImage } from '../services/imageStorage';
 
 interface ImagePreviewProps {
   imageUrl?: string;
@@ -7,43 +8,47 @@ interface ImagePreviewProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
-  const imageUrl = initialUrl || '';
+  const [displayUrl, setDisplayUrl] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  useEffect(() => {
+    if (!initialUrl) { setDisplayUrl(''); return; }
+    if (initialUrl.startsWith('http') || initialUrl.startsWith('blob:')) {
+      setDisplayUrl(initialUrl);
+    } else if (initialUrl.startsWith('img_')) {
+      loadImage(initialUrl).then((url) => setDisplayUrl(url || ''));
+    }
+  }, [initialUrl]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 超过 1MB 的图片压缩后再存储
+    // 压缩大图
+    let blob: Blob = file;
     if (file.size > 1024 * 1024) {
-      const img = new Image();
-      const url = URL.createObjectURL(file);
-      img.onload = () => {
-        URL.revokeObjectURL(url);
-        const max = 400;
-        const scale = Math.min(max / img.width, max / img.height, 1);
-        const w = Math.round(img.width * scale);
-        const h = Math.round(img.height * scale);
-        const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        const ctx = canvas.getContext('2d')!;
-        ctx.drawImage(img, 0, 0, w, h);
-        onImageChange?.(canvas.toDataURL('image/jpeg', 0.7));
-      };
-      img.src = url;
-      return;
+      const img = await new Promise<HTMLImageElement>((resolve) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.src = URL.createObjectURL(file);
+      });
+      URL.revokeObjectURL(img.src);
+      const max = 400;
+      const scale = Math.min(max / img.width, max / img.height, 1);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.7));
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      onImageChange?.(base64);
-    };
-    reader.readAsDataURL(file);
+    const id = await saveImage(blob);
+    onImageChange?.(id);
   };
 
   const handleUrlSubmit = () => {
@@ -54,21 +59,23 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
     }
   };
 
-  const handleRemove = () => {
-    onImageChange?.('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handleRemove = async () => {
+    if (initialUrl && initialUrl.startsWith('img_')) {
+      await deleteImage(initialUrl);
     }
+    onImageChange?.('');
+    setDisplayUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
     <>
       <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-pink-100">
         <div className="relative w-full" style={{ minHeight: '160px' }}>
-          {imageUrl ? (
+          {displayUrl ? (
             <>
               <img
-                src={imageUrl}
+                src={displayUrl}
                 alt="预览"
                 className="w-full h-full object-contain cursor-pointer max-h-48"
                 onClick={() => setShowModal(true)}
@@ -140,7 +147,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
         />
       </div>
 
-      {showModal && imageUrl && (
+      {showModal && displayUrl && (
         <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
           onClick={() => setShowModal(false)}
@@ -153,7 +160,7 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
             <X size={20} />
           </button>
           <img
-            src={imageUrl}
+            src={displayUrl}
             alt="预览大图"
             className="max-w-full max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}

@@ -15,14 +15,35 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        onImageChange?.(base64);
+    if (!file) return;
+
+    // 超过 1MB 的图片压缩后再存储
+    if (file.size > 1024 * 1024) {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const max = 400;
+        const scale = Math.min(max / img.width, max / img.height, 1);
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        onImageChange?.(canvas.toDataURL('image/jpeg', 0.7));
       };
-      reader.readAsDataURL(file);
+      img.src = url;
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string;
+      onImageChange?.(base64);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleUrlSubmit = () => {

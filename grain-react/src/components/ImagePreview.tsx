@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, ZoomIn } from 'lucide-react';
+import { Upload, X, ZoomIn, Link } from 'lucide-react';
 
 interface ImagePreviewProps {
   imageUrl?: string;
@@ -9,6 +9,8 @@ interface ImagePreviewProps {
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
   const imageUrl = initialUrl || '';
   const [showModal, setShowModal] = useState(false);
+  const [showUrlInput, setShowUrlInput] = useState(false);
+  const [urlValue, setUrlValue] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,6 +25,14 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
     }
   };
 
+  const handleUrlSubmit = () => {
+    if (urlValue.trim()) {
+      onImageChange?.(urlValue.trim());
+      setShowUrlInput(false);
+      setUrlValue('');
+    }
+  };
+
   const handleRemove = () => {
     onImageChange?.('');
     if (fileInputRef.current) {
@@ -33,23 +43,21 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
   return (
     <>
       <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-pink-100">
-        {/* 16:9 比例容器 */}
-        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+        <div className="relative w-full" style={{ minHeight: '160px' }}>
           {imageUrl ? (
             <>
               <img
                 src={imageUrl}
                 alt="预览"
-                className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+                className="w-full h-full object-contain cursor-pointer max-h-48"
                 onClick={() => setShowModal(true)}
               />
-              <div 
+              <div
                 className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100"
                 onClick={() => setShowModal(true)}
               >
                 <ZoomIn size={20} className="text-white" />
               </div>
-              {/* 删除按钮 */}
               <button
                 onClick={handleRemove}
                 className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-red-500 transition-colors backdrop-blur-sm"
@@ -60,16 +68,47 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
               </button>
             </>
           ) : (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="absolute inset-0 flex flex-col items-center justify-center hover:bg-pink-50/50 transition-colors"
-              aria-label="上传预览图"
-            >
-              <Upload size={20} className="text-pink-400 mb-1" />
-              <span className="text-xs text-gray-500">上传预览图</span>
-            </button>
+            <div className="flex flex-col items-center justify-center gap-2 py-8">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex flex-col items-center gap-1 hover:bg-pink-50/50 transition-colors p-4 rounded-xl w-full"
+                aria-label="上传预览图"
+              >
+                <Upload size={20} className="text-pink-400" />
+                <span className="text-xs text-gray-500">上传图片</span>
+              </button>
+              <span className="text-xs text-gray-300">或</span>
+              <button
+                onClick={() => setShowUrlInput(true)}
+                className="flex items-center gap-1.5 text-xs text-pink-400 hover:text-pink-500"
+              >
+                <Link size={12} />
+                输入图片链接
+              </button>
+            </div>
           )}
         </div>
+
+        {showUrlInput && (
+          <div className="border-t border-pink-100 p-2 flex gap-2">
+            <input
+              type="text"
+              value={urlValue}
+              onChange={(e) => setUrlValue(e.target.value)}
+              placeholder="https://example.com/image.jpg"
+              className="flex-1 h-8 px-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:border-accent"
+              onKeyDown={(e) => { if (e.key === 'Enter') handleUrlSubmit(); }}
+              autoFocus
+            />
+            <button
+              onClick={handleUrlSubmit}
+              disabled={!urlValue.trim()}
+              className="h-8 px-3 text-xs font-medium text-white bg-accent rounded-lg hover:bg-[#d94d82] disabled:opacity-40"
+            >
+              确认
+            </button>
+          </div>
+        )}
 
         <input
           ref={fileInputRef}
@@ -80,17 +119,15 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
         />
       </div>
 
-      {/* 放大预览弹窗 */}
       {showModal && imageUrl && (
-        <div 
+        <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
           onClick={() => setShowModal(false)}
         >
-          <button 
+          <button
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             onClick={() => setShowModal(false)}
             aria-label="关闭预览"
-            title="关闭预览"
           >
             <X size={20} />
           </button>

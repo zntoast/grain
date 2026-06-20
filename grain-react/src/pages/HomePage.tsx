@@ -4,7 +4,7 @@ import { LayoutDashboard, FolderOpen, Tag, ArrowRight, Sparkles, FilePlus, Folde
 import { useStore } from '../store';
 import { bindDataFile } from '../store';
 import { Modal, Button } from '../components';
-import { createDataFile, chooseExistingDataFile, getSavedDataFileHandle, readSnapshotFromFile, readSnapshotFromUpload, writeSnapshotToFile } from '../services/localDataFile';
+import { createDataFile, chooseExistingDataFile, getSavedDataFileHandle, readSnapshotFromFile, readSnapshotFromUpload, writeSnapshotToFile, downloadSnapshot } from '../services/localDataFile';
 
 export const HomePage: React.FC = () => {
   const { workspaces, groups, tags, exportData, importData, setHasCompletedOnboarding } = useStore();
@@ -47,11 +47,16 @@ export const HomePage: React.FC = () => {
     setSelectedMode('create');
     try {
       const snapshot = exportData();
-      const fileHandle = await createDataFile();
-      await writeSnapshotToFile(fileHandle, snapshot);
+      try {
+        const fileHandle = await createDataFile();
+        await writeSnapshotToFile(fileHandle, snapshot);
+      } catch {
+        // 浏览器不支持 File System Access API，直接下载 JSON
+        downloadSnapshot(snapshot);
+      }
       setHasCompletedOnboarding(true);
       setShowWorkModeModal(false);
-      setShowSyncReminder(true);
+      navigate(`/workspace/${workspaces[0]?.id || 'ws_illust'}`);
     } catch (error) {
       console.error('Failed to create new workspace:', error);
     } finally {

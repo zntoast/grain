@@ -72,6 +72,7 @@ export interface GrainDataSnapshot {
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  showR18Category: boolean;
   customCategories?: string[];
 }
 
@@ -105,6 +106,7 @@ export interface StoreState {
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  showR18Category: boolean;
   
   // 引导状态
   hasCompletedOnboarding: boolean;
@@ -157,6 +159,7 @@ export interface StoreState {
   toggleSidebar: () => void;
   setCursorMode: (mode: CursorMode) => void;
   setSyncInterval: (seconds: number) => void;
+  setShowR18Category: (show: boolean) => void;
   
   // 引导流程
   setHasCompletedOnboarding: (completed: boolean) => void;

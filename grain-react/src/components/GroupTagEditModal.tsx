@@ -3,6 +3,7 @@ import { Plus, Copy, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
 import { Modal, Button, SearchBox, TagChip, ImagePreview, useToast, Toast } from '../components';
 import { CATEGORIES } from '../types';
+import { filterVisibleCategories, filterVisibleTags } from '../utils/categoryVisibility';
 
 interface GroupTagEditModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface GroupTagEditModalProps {
 
 export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, onClose, groupId }) => {
   const { toast, showToast, hideToast } = useToast();
-  const { groups, tags, groupTags, toggleTagInGroup, addTag, linkTagToGroup, updateGroup } = useStore();
+  const { groups, tags, groupTags, toggleTagInGroup, addTag, linkTagToGroup, updateGroup, showR18Category } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -22,12 +23,27 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
   const [newTagCategory, setNewTagCategory] = useState<string>(CATEGORIES[0]);
   const [showCustomInput, setShowCustomInput] = useState(false);
   const [customInput, setCustomInput] = useState('');
+  const visibleCategories = useMemo<string[]>(
+    () => filterVisibleCategories(CATEGORIES, showR18Category),
+    [showR18Category],
+  );
+  const fallbackCategory = visibleCategories[0] || CATEGORIES[0];
+  const effectiveSelectedCategory = selectedCategory && visibleCategories.includes(selectedCategory)
+    ? selectedCategory
+    : null;
+  const effectiveNewTagCategory = visibleCategories.includes(newTagCategory)
+    ? newTagCategory
+    : fallbackCategory;
 
   const group = groups.find((g) => g.id === groupId);
   const currentTagIds = groupId ? groupTags[groupId] || [] : [];
   const currentTags = currentTagIds
     .map((tagId) => tags.find((t) => t.id === tagId))
     .filter(Boolean);
+  const visibleCurrentTags = useMemo(
+    () => filterVisibleTags(currentTags, showR18Category),
+    [currentTags, showR18Category],
+  );
 
   // 自定义提示词行
   const customLines = customInput
@@ -37,14 +53,14 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
 
   // 所有标签（带搜索和分类筛选）
   const availableTags = useMemo(() => {
-    return tags.filter((t) => {
+    return filterVisibleTags(tags, showR18Category).filter((t) => {
       const matchesSearch = searchQuery
         ? t.en.toLowerCase().includes(searchQuery.toLowerCase()) || t.zh.includes(searchQuery)
         : true;
-      const matchesCategory = selectedCategory ? t.category === selectedCategory : true;
+      const matchesCategory = effectiveSelectedCategory ? t.category === effectiveSelectedCategory : true;
       return matchesSearch && matchesCategory;
     });
-  }, [tags, searchQuery, selectedCategory]);
+  }, [tags, searchQuery, effectiveSelectedCategory, showR18Category]);
 
   // 按分类分组
   const groupedTags = useMemo(() => {
@@ -66,7 +82,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
     const newTag = addTag({
       en: newTagEn.trim(),
       zh: newTagZh.trim(),
-      category: newTagCategory,
+      category: effectiveNewTagCategory,
     });
     linkTagToGroup(groupId, newTag.id);
     setShowAddForm(false);
@@ -77,7 +93,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
   };
 
   const handleCopyAll = () => {
-    const allPrompts = [...currentTags.map((t) => t!.en), ...customLines].join(', ');
+    const allPrompts = [...visibleCurrentTags.map((t) => t!.en), ...customLines].join(', ');
     navigator.clipboard.writeText(allPrompts);
     showToast('已复制全部提示词');
   };
@@ -122,16 +138,16 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
                 <div className="flex items-center justify-between mb-2">
                   <h4 className="text-xs font-semibold text-gray-500">
                     当前提示词
-                    <span className="ml-1 font-normal text-gray-400">({currentTags.length} 个)</span>
+                    <span className="ml-1 font-normal text-gray-400">({visibleCurrentTags.length} 个)</span>
                   </h4>
                   <Button variant="ghost" size="sm" onClick={handleCopyAll}>
                     <Copy size={12} />
                     复制
                   </Button>
                 </div>
-                {currentTags.length > 0 ? (
+                {visibleCurrentTags.length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {currentTags.map((tag) => (
+                    {visibleCurrentTags.map((tag) => (
                       <TagChip
                         key={tag!.id}
                         en={tag!.en}
@@ -219,11 +235,11 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
               </div>
               <div className="flex items-center gap-2">
                 <select
-                  value={newTagCategory}
+                  value={effectiveNewTagCategory}
                   onChange={(e) => setNewTagCategory(e.target.value)}
                   className="form-control h-9 px-3 text-sm"
                 >
-                  {CATEGORIES.map((cat) => (
+                  {visibleCategories.map((cat) => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
                 </select>
@@ -239,17 +255,17 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
             <button
               onClick={() => setSelectedCategory(null)}
               className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
-                selectedCategory === null ? 'filter-chip-active' : ''
+                effectiveSelectedCategory === null ? 'filter-chip-active' : ''
               }`}
             >
               全部
             </button>
-            {CATEGORIES.map((cat) => (
+            {visibleCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
-                  selectedCategory === cat ? 'filter-chip-active' : ''
+                  effectiveSelectedCategory === cat ? 'filter-chip-active' : ''
                 }`}
               >
                 {cat}

@@ -30,6 +30,7 @@ import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { ImagePreview } from '../components/ImagePreview';
 import { CATEGORIES } from '../types';
+import { filterVisibleCategories, filterVisibleTags } from '../utils/categoryVisibility';
 
 // 自定义分类列表
 const CUSTOM_CATEGORIES_KEY = 'grain_custom_categories';
@@ -101,6 +102,7 @@ export const GroupPage: React.FC = () => {
     reorderTagsInGroup,
     deleteGroup,
     updateGroup,
+    showR18Category,
   } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,8 +119,15 @@ export const GroupPage: React.FC = () => {
 
   // 所有可用分类（内置 + 自定义）
   const allCategories = useMemo(() => {
-    return [...CATEGORIES, ...customCategories];
-  }, [customCategories]);
+    return filterVisibleCategories([...CATEGORIES, ...customCategories], showR18Category);
+  }, [customCategories, showR18Category]);
+  const fallbackCategory = allCategories[0] || CATEGORIES[0];
+  const effectiveSelectedCategory = allCategories.includes(selectedCategory)
+    ? selectedCategory
+    : fallbackCategory;
+  const effectiveNewTagCategory = allCategories.includes(newTagCategory)
+    ? newTagCategory
+    : fallbackCategory;
 
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
@@ -139,6 +148,10 @@ export const GroupPage: React.FC = () => {
   const currentTags = currentTagIds
     .map((tagId) => tags.find((t) => t.id === tagId))
     .filter(Boolean);
+  const visibleCurrentTags = useMemo(
+    () => filterVisibleTags(currentTags, showR18Category),
+    [currentTags, showR18Category],
+  );
 
   // 所属工作空间
   const parentWorkspaces = useMemo(() => {
@@ -150,15 +163,15 @@ export const GroupPage: React.FC = () => {
 
   // 所有可选的 Tag
   const allAvailableTags = useMemo(() => {
-    return tags.filter((t) => {
+    return filterVisibleTags(tags, showR18Category).filter((t) => {
       const matchesSearch = searchQuery
         ? t.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.zh.includes(searchQuery)
         : true;
-      const matchesCategory = t.category === selectedCategory;
+      const matchesCategory = t.category === effectiveSelectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [tags, searchQuery, selectedCategory]);
+  }, [tags, searchQuery, effectiveSelectedCategory, showR18Category]);
 
   // 按分类分组
   const groupedAvailableTags = useMemo(() => {
@@ -202,7 +215,7 @@ export const GroupPage: React.FC = () => {
 
   // 复制全部提示词（包含自定义）
   const handleCopyAll = () => {
-    const tagWords = currentTags.map((t) => t!.en);
+    const tagWords = visibleCurrentTags.map((t) => t!.en);
     const allWords = [...tagWords, ...customLines];
     const text = allWords.join(', ');
     navigator.clipboard.writeText(text);
@@ -215,7 +228,7 @@ export const GroupPage: React.FC = () => {
     const newTag = addTag({
       en: newTagEn.trim(),
       zh: newTagZh.trim(),
-      category: newTagCategory,
+      category: effectiveNewTagCategory,
     });
     linkTagToGroup(groupId, newTag.id);
     setShowAddTagModal(false);
@@ -264,7 +277,7 @@ export const GroupPage: React.FC = () => {
               </button>
               <div>
                 <h1 className="text-lg font-semibold text-gray-900">{group.name}</h1>
-                <span className="text-sm text-gray-400">({currentTags.length} 个提示词)</span>
+                <span className="text-sm text-gray-400">({visibleCurrentTags.length} 个提示词)</span>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -312,7 +325,7 @@ export const GroupPage: React.FC = () => {
                   </Button>
                 </div>
                 <div className="surface-card bg-[#fdfaf8] p-3 font-mono text-xs text-gray-700 leading-relaxed h-full overflow-auto">
-                  {[...currentTags.map((t) => t!.en), ...customLines].join(', ') || '暂无提示词'}
+                  {[...visibleCurrentTags.map((t) => t!.en), ...customLines].join(', ') || '暂无提示词'}
                 </div>
               </div>
             </div>
@@ -323,11 +336,11 @@ export const GroupPage: React.FC = () => {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold text-gray-900 section-title">
                 已选提示词
-                <span className="ml-2 text-xs font-normal text-gray-400">{currentTags.length} 个</span>
+                <span className="ml-2 text-xs font-normal text-gray-400">{visibleCurrentTags.length} 个</span>
               </h3>
             </div>
 
-            {currentTags.length > 0 ? (
+            {visibleCurrentTags.length > 0 ? (
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -338,7 +351,7 @@ export const GroupPage: React.FC = () => {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="flex flex-wrap gap-2">
-                    {currentTags.map((tag) => (
+                    {visibleCurrentTags.map((tag) => (
                       <SortableTagItem
                         key={tag!.id}
                         tagId={tag!.id}
@@ -437,7 +450,7 @@ export const GroupPage: React.FC = () => {
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
                   className={`filter-chip control-press !px-2.5 !py-1 !text-xs ${
-                    selectedCategory === cat
+                    effectiveSelectedCategory === cat
                       ? 'filter-chip-active'
                       : ''
                   }`}
@@ -529,11 +542,11 @@ export const GroupPage: React.FC = () => {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">分类</label>
             <select
-              value={newTagCategory}
+              value={effectiveNewTagCategory}
               onChange={(e) => setNewTagCategory(e.target.value)}
               className="form-control w-full h-10 px-3 text-sm"
             >
-              {CATEGORIES.map((cat) => (
+              {filterVisibleCategories(CATEGORIES, showR18Category).map((cat) => (
                 <option key={cat} value={cat}>
                   {cat}
                 </option>

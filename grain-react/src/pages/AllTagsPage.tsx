@@ -3,6 +3,7 @@ import { Plus, Trash2, Tag as TagIcon, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { CATEGORIES } from '../types';
+import { filterVisibleCategories, filterVisibleTags } from '../utils/categoryVisibility';
 
 // 自定义分类列表
 const CUSTOM_CATEGORIES_KEY = 'grain_custom_categories';
@@ -21,7 +22,7 @@ const saveCustomCategories = (categories: string[]) => {
 export const AllTagsPage: React.FC = () => {
   const { toast, showToast, hideToast } = useToast();
 
-  const { tags, groups, groupTags, addTags, deleteTag, updateTag } = useStore();
+  const { tags, groups, groupTags, addTags, deleteTag, updateTag, showR18Category } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -41,20 +42,28 @@ export const AllTagsPage: React.FC = () => {
 
   // 所有可用分类（内置 + 自定义）
   const allCategories = useMemo(() => {
-    return [...CATEGORIES, ...customCategories];
-  }, [customCategories]);
+    return filterVisibleCategories([...CATEGORIES, ...customCategories], showR18Category);
+  }, [customCategories, showR18Category]);
+
+  const visibleTags = useMemo(() => filterVisibleTags(tags, showR18Category), [tags, showR18Category]);
+  const effectiveSelectedCategory = selectedCategory && allCategories.includes(selectedCategory)
+    ? selectedCategory
+    : null;
+  const effectiveMoveToCategory = allCategories.includes(moveToCategory)
+    ? moveToCategory
+    : allCategories[0] || CATEGORIES[0];
 
   // 筛选后的 Tags
   const filteredTags = useMemo(() => {
-    return tags.filter((t) => {
+    return visibleTags.filter((t) => {
       const matchesSearch = searchQuery
         ? t.en.toLowerCase().includes(searchQuery.toLowerCase()) ||
           t.zh.includes(searchQuery)
         : true;
-      const matchesCategory = selectedCategory ? t.category === selectedCategory : true;
+      const matchesCategory = effectiveSelectedCategory ? t.category === effectiveSelectedCategory : true;
       return matchesSearch && matchesCategory;
     });
-  }, [tags, searchQuery, selectedCategory]);
+  }, [visibleTags, searchQuery, effectiveSelectedCategory]);
 
   // 按分类分组
   const groupedTags = useMemo(() => {
@@ -68,15 +77,15 @@ export const AllTagsPage: React.FC = () => {
 
   // 统计
   const stats = useMemo(() => {
-    const linkedCount = tags.filter((t) => {
+    const linkedCount = visibleTags.filter((t) => {
       return groups.some((g) => (groupTags[g.id] || []).includes(t.id));
     }).length;
     return {
-      total: tags.length,
+      total: visibleTags.length,
       linked: linkedCount,
       filtered: filteredTags.length,
     };
-  }, [tags, groups, groupTags, filteredTags]);
+  }, [visibleTags, groups, groupTags, filteredTags]);
 
   // 切换选择
   const handleToggleSelect = (tagId: string) => {
@@ -169,7 +178,7 @@ export const AllTagsPage: React.FC = () => {
   const handleDeleteCategory = () => {
     if (!categoryToDelete) return;
 
-    const categoryTags = tags.filter(t => t.category === categoryToDelete);
+    const categoryTags = visibleTags.filter(t => t.category === categoryToDelete);
     
     if (deleteCategoryAction === 'delete') {
       // 删除该分类下的所有提示词
@@ -177,8 +186,8 @@ export const AllTagsPage: React.FC = () => {
       showToast(`已删除分类 "${categoryToDelete}" 及其 ${categoryTags.length} 个提示词`);
     } else {
       // 移动到其他分类
-      categoryTags.forEach(t => updateTag(t.id, { category: moveToCategory }));
-      showToast(`已删除分类 "${categoryToDelete}"，${categoryTags.length} 个提示词已移动到 "${moveToCategory}"`);
+      categoryTags.forEach(t => updateTag(t.id, { category: effectiveMoveToCategory }));
+      showToast(`已删除分类 "${categoryToDelete}"，${categoryTags.length} 个提示词已移动到 "${effectiveMoveToCategory}"`);
     }
 
     // 从自定义分类中移除
@@ -187,7 +196,7 @@ export const AllTagsPage: React.FC = () => {
     saveCustomCategories(updatedCategories);
 
     // 如果当前选中的是被删除的分类，清除选择
-    if (selectedCategory === categoryToDelete) {
+    if (effectiveSelectedCategory === categoryToDelete) {
       setSelectedCategory(null);
     }
 
@@ -245,7 +254,7 @@ export const AllTagsPage: React.FC = () => {
           <button
             onClick={() => setSelectedCategory(null)}
             className={`filter-chip control-press whitespace-nowrap ${
-              selectedCategory === null
+              effectiveSelectedCategory === null
                 ? 'filter-chip-active'
                 : ''
             }`}
@@ -259,7 +268,7 @@ export const AllTagsPage: React.FC = () => {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm whitespace-nowrap cursor-pointer ${
-                  selectedCategory === cat
+                  effectiveSelectedCategory === cat
                     ? 'bg-accent text-white'
                     : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
                 } ${isCustom ? 'pr-1.5' : ''}`}
@@ -272,7 +281,7 @@ export const AllTagsPage: React.FC = () => {
                       handleOpenDeleteCategory(cat);
                     }}
                     className={`ml-1 p-0.5 rounded hover:bg-red-100 ${
-                      selectedCategory === cat ? 'text-white hover:bg-red-400' : 'text-gray-400 hover:text-red-500'
+                      effectiveSelectedCategory === cat ? 'text-white hover:bg-red-400' : 'text-gray-400 hover:text-red-500'
                     }`}
                     title="删除分类"
                   >
@@ -418,7 +427,7 @@ export const AllTagsPage: React.FC = () => {
       >
         <div className="space-y-4">
           <div className="text-sm text-gray-600">
-            该分类下有 <strong>{tags.filter(t => t.category === categoryToDelete).length}</strong> 个提示词
+            该分类下有 <strong>{visibleTags.filter(t => t.category === categoryToDelete).length}</strong> 个提示词
           </div>
           
           <div className="space-y-3">
@@ -435,11 +444,11 @@ export const AllTagsPage: React.FC = () => {
             
             {deleteCategoryAction === 'move' && (
               <select
-                value={moveToCategory}
+                value={effectiveMoveToCategory}
                 onChange={(e) => setMoveToCategory(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-accent focus:outline-none"
               >
-                {CATEGORIES.map(cat => (
+                {filterVisibleCategories(CATEGORIES, showR18Category).map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
                 {customCategories.filter(c => c !== categoryToDelete).map(cat => (

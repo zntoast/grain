@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast, GroupCard } from '../components';
 import { COLOR_OPTIONS } from '../constants';
 import type { Group } from '../types';
+import { filterVisibleTags } from '../utils/categoryVisibility';
 
 export const WorkspacePage: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -24,6 +25,7 @@ export const WorkspacePage: React.FC = () => {
     unlinkGroupFromWorkspace,
     setGroupType,
     updateWorkspaceGroupOrder,
+    showR18Category,
   } = useStore();
 
   const [viewType, setViewType] = useState<'positive' | 'negative' | 'all'>('positive');
@@ -84,7 +86,7 @@ export const WorkspacePage: React.FC = () => {
         // 标准提示词
         (groupTags[item.group.id] || []).forEach((tagId) => {
           const tag = tags.find((t) => t.id === tagId);
-          if (tag) result.push(tag);
+          if (tag && filterVisibleTags([tag], showR18Category).length > 0) result.push(tag);
         });
         // 自定义提示词
         const customLines = item.group.customTags?.split('\n').filter(line => line.trim()) || [];
@@ -94,7 +96,7 @@ export const WorkspacePage: React.FC = () => {
       }
     });
     return result;
-  }, [filteredGroups, groupTags, tags, disabledGroupIds]);
+  }, [filteredGroups, groupTags, tags, disabledGroupIds, showR18Category]);
 
   // 统计数据（包括自定义提示词）
   const stats = useMemo(() => {
@@ -104,7 +106,12 @@ export const WorkspacePage: React.FC = () => {
     
     workspaceGroupEntries.forEach((e) => {
       // 标准提示词数量
-      totalTagCount += (groupTags[e.groupId] || []).length;
+      totalTagCount += filterVisibleTags(
+        (groupTags[e.groupId] || [])
+          .map((tagId) => tags.find((t) => t.id === tagId))
+          .filter(Boolean),
+        showR18Category,
+      ).length;
       // 自定义提示词数量
       const group = groups.find((g) => g.id === e.groupId);
       const customCount = (group?.customTags?.split('\n').filter(line => line.trim()) || []).length;
@@ -118,7 +125,7 @@ export const WorkspacePage: React.FC = () => {
       tagCount: totalTagCount,
       workspaceCount: workspaces.length,
     };
-  }, [workspaceGroupEntries, groupTags, workspaces, groups]);
+  }, [workspaceGroupEntries, groupTags, workspaces, groups, tags, showR18Category]);
 
   // 获取词组的所有提示词（包括自定义提示词）
   const getGroupAllTags = (groupId: string) => {
@@ -128,7 +135,7 @@ export const WorkspacePage: React.FC = () => {
       .filter(Boolean);
     const group = groups.find((g) => g.id === groupId);
     const customLines = group?.customTags?.split('\n').filter(line => line.trim()) || [];
-    return [...standardTags, ...customLines.map(line => ({ en: line, zh: '', category: '' } as any))];
+    return [...filterVisibleTags(standardTags, showR18Category), ...customLines.map(line => ({ en: line, zh: '', category: '' }))];
   };
 
   // 获取词组的图片 URL
@@ -501,7 +508,12 @@ export const WorkspacePage: React.FC = () => {
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
                     <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
-                      const standardCount = (groupTags[g.group!.id] || []).length;
+                      const standardCount = filterVisibleTags(
+                        (groupTags[g.group!.id] || [])
+                          .map((tagId) => tags.find((t) => t.id === tagId))
+                          .filter(Boolean),
+                        showR18Category,
+                      ).length;
                       const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
                       return acc + standardCount + customCount;
                     }, 0)} 个词）</span>
@@ -589,7 +601,12 @@ export const WorkspacePage: React.FC = () => {
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
                     <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
-                      const standardCount = (groupTags[g.group!.id] || []).length;
+                      const standardCount = filterVisibleTags(
+                        (groupTags[g.group!.id] || [])
+                          .map((tagId) => tags.find((t) => t.id === tagId))
+                          .filter(Boolean),
+                        showR18Category,
+                      ).length;
                       const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
                       return acc + standardCount + customCount;
                     }, 0)} 个词）</span>

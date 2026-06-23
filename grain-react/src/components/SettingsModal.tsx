@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, WandSparkles, MousePointer2, HardDrive, Download, Upload, FilePlus, Clock } from 'lucide-react';
+import { Sparkles, WandSparkles, MousePointer2, HardDrive, Download, Upload, FilePlus, Clock, EyeOff } from 'lucide-react';
 import { useStore, bindDataFile, unbindDataFile } from '../store';
 import { Modal } from './Modal';
 import { Button } from './Button';
@@ -32,6 +32,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   const setCursorMode = useStore((s) => s.setCursorMode);
   const syncInterval = useStore((s) => s.syncInterval);
   const setSyncInterval = useStore((s) => s.setSyncInterval);
+  const showR18Category = useStore((s) => s.showR18Category);
+  const setShowR18Category = useStore((s) => s.setShowR18Category);
   const importData = useStore((s) => s.importData);
   const exportData = useStore((s) => s.exportData);
   const [syncEnabled, setSyncEnabled] = useState(() => {
@@ -131,6 +133,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 : '鼠标移动带拖尾粒子，点击产生花火粒子效果。'}
             </p>
           )}
+        </div>
+
+        {/* 内容显示 */}
+        <div className="border-t border-gray-100 pt-5">
+          <div className="flex items-center gap-2 mb-3">
+            <EyeOff size={16} className="text-gray-400" />
+            <h4 className="text-sm font-semibold text-gray-900">内容显示</h4>
+          </div>
+          <label className="flex items-center justify-between gap-4 rounded-lg border border-gray-100 p-3 hover:bg-gray-50">
+            <div>
+              <div className="text-sm font-medium text-gray-900">显示 R18 分类</div>
+              <div className="text-xs text-gray-500">开启后，提示词管理、词组和工作空间会显示 R18 分类及其提示词。</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={showR18Category}
+              onChange={(e) => setShowR18Category(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-accent focus:ring-accent"
+            />
+          </label>
         </div>
 
         {/* 工作方式 */}

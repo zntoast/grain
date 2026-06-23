@@ -3,6 +3,7 @@ import { Copy, Save, Trash2, Plus, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Button, Modal, useToast, Toast } from '../components';
 import { CATEGORIES } from '../types';
+import { filterVisibleCategories } from '../utils/categoryVisibility';
 
 interface TagEditorModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
     deleteTag,
     linkTagToGroup,
     unlinkTagFromGroup,
+    showR18Category,
   } = useStore();
 
   const tag = tags.find((t) => t.id === tagId);
@@ -135,7 +137,7 @@ export const TagEditorModal: React.FC<TagEditorModalProps> = ({ isOpen, onClose,
                   onChange={(e) => setCategory(e.target.value)}
                   className="form-control w-full h-10 px-3 text-sm"
                 >
-                  {CATEGORIES.map((cat) => (
+                  {filterVisibleCategories(CATEGORIES, showR18Category).map((cat) => (
                     <option key={cat} value={cat}>
                       {cat}
                     </option>

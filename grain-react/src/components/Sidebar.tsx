@@ -37,6 +37,7 @@ import { Button } from './Button';
 import { Modal } from './Modal';
 import { SettingsModal } from './SettingsModal';
 import type { Folder, Group, Workspace } from '../types';
+import { filterVisibleTags } from '../utils/categoryVisibility';
 
 /* ============================================================
    SortableGroupItem — 可拖拽的词组行
@@ -420,14 +421,14 @@ export const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const {
-    workspaces, groups, folders, groupFolderMap, groupTags,
+    workspaces, groups, folders, groupFolderMap, groupTags, tags,
     sidebarCollapsed, toggleSidebar, addGroup, addFolder,
     updateFolder, updateGroup, deleteFolder, deleteGroup,
     updateWorkspace, deleteWorkspace, addWorkspace,
     moveGroupToFolder, reorderGroups,
     workspaceFolders, workspaceFolderMap,
     addWorkspaceFolder, updateWorkspaceFolder, deleteWorkspaceFolder,
-    moveWorkspaceToFolder, reorderWorkspaces,
+    moveWorkspaceToFolder, reorderWorkspaces, showR18Category,
   } = useStore();
 
   // ---- state ----
@@ -458,7 +459,13 @@ export const Sidebar: React.FC = () => {
   const [selectedWsFolderId, setSelectedWsFolderId] = useState<string | null>(null);
 
   // ---- derived ----
-  const getGroupTagCount = (groupId: string) => groupTags[groupId]?.length || 0;
+  const getGroupTagCount = (groupId: string) =>
+    filterVisibleTags(
+      (groupTags[groupId] || [])
+        .map((tagId) => tags.find((tag) => tag.id === tagId))
+        .filter(Boolean),
+      showR18Category,
+    ).length;
   const rootFolders = folders.filter((f) => !f.parentId);
   const rootGroups = groups.filter((g) => !groupFolderMap[g.id]);
   const getChildFolders = (id: string) => folders.filter((f) => f.parentId === id);
@@ -702,7 +709,9 @@ export const Sidebar: React.FC = () => {
     return (
       <aside className="w-16 flex-shrink-0 sidebar-collapsed-warm flex flex-col h-screen sticky top-0 z-40">
         <div className="h-14 flex items-center justify-center border-b sidebar-divider">
-          <button onClick={toggleSidebar} className="w-9 h-9 rounded-xl bg-accent text-white flex items-center justify-center font-semibold shadow-sm" title="展开侧边栏">G</button>
+          <button onClick={toggleSidebar} className="w-9 h-9 rounded-xl bg-white flex items-center justify-center shadow-sm overflow-hidden" title="展开侧边栏">
+            <img src="/logo.png" alt="Grain" className="h-8 w-8 object-contain" />
+          </button>
         </div>
         <nav className="flex-1 py-3 flex flex-col items-center gap-1.5">
           <Link to="/" title="首页" className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors sidebar-collapsed-icon ${isActive('/') ? 'sidebar-link-active' : ''}`}><Home size={18} /></Link>
@@ -724,7 +733,9 @@ export const Sidebar: React.FC = () => {
         {/* header */}
         <div className="flex items-center justify-between px-4 h-14 border-b sidebar-divider">
           <Link to="/" className="flex items-center gap-2.5 text-gray-900 font-semibold">
-            <span className="w-1 h-5 rounded-full bg-accent" />
+            <span className="w-7 h-7 rounded-lg bg-white shadow-sm overflow-hidden flex items-center justify-center">
+              <img src="/logo.png" alt="Grain" className="h-6 w-6 object-contain" />
+            </span>
             <span className="text-[15px] tracking-tight">Grain Tag</span>
           </Link>
           <button onClick={toggleSidebar} className="w-8 h-8 flex items-center justify-center rounded-lg sidebar-footer-btn transition-colors" title="收起侧边栏" aria-label="收起侧边栏"><ChevronLeft size={14} /></button>

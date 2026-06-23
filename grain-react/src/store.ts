@@ -76,6 +76,7 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
   currentWorkspaceId: data.currentWorkspaceId || DEFAULT_WORKSPACES[0]?.id || null,
   cursorMode: (data.cursorMode as CursorMode) || 'off',
   syncInterval: data.syncInterval || 30,
+  showR18Category: data.showR18Category || false,
 });
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -96,6 +97,7 @@ export const useStore = create<StoreState>((set, get) => ({
   currentWorkspaceId: DEFAULT_WORKSPACES[0]?.id || null,
   cursorMode: 'off' as CursorMode,
   syncInterval: 30,
+  showR18Category: false,
   hasCompletedOnboarding: false,
 
   // 引导流程
@@ -497,6 +499,11 @@ export const useStore = create<StoreState>((set, get) => ({
     get().saveToStorage();
   },
 
+  setShowR18Category: (show) => {
+    set({ showR18Category: show });
+    get().saveToStorage();
+  },
+
   // 数据持久化
   loadFromStorage: () => {
     try {
@@ -548,6 +555,7 @@ export const useStore = create<StoreState>((set, get) => ({
       currentWorkspaceId: state.currentWorkspaceId,
       cursorMode: state.cursorMode,
       syncInterval: state.syncInterval,
+      showR18Category: state.showR18Category,
       customCategories,
     };
   },

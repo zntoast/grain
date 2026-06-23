@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { Layout, Button, Modal, useToast, Toast } from '../components';
 import { CATEGORIES } from '../types';
 import { isSaveShortcut } from '../utils/saveShortcut';
+import { filterVisibleCategories } from '../utils/categoryVisibility';
 
 export const TagEditorPage: React.FC = () => {
   const { tagId } = useParams<{ tagId: string }>();
@@ -19,6 +20,7 @@ export const TagEditorPage: React.FC = () => {
     deleteTag,
     linkTagToGroup,
     unlinkTagFromGroup,
+    showR18Category,
   } = useStore();
 
   const [en, setEn] = useState('');
@@ -174,7 +176,7 @@ export const TagEditorPage: React.FC = () => {
                     onChange={(e) => setCategory(e.target.value)}
                     className="form-control w-full h-10 px-3 text-sm"
                   >
-                    {CATEGORIES.map((cat) => (
+                    {filterVisibleCategories(CATEGORIES, showR18Category).map((cat) => (
                       <option key={cat} value={cat}>
                         {cat}
                       </option>

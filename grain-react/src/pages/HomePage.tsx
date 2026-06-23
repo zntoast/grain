@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FolderOpen, Tag, ArrowRight, Sparkles, FilePlus, FolderInput, Clock, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, FolderOpen, Tag, ArrowRight, FilePlus, FolderInput, Clock, RefreshCw } from 'lucide-react';
 import { useStore } from '../store';
 import { bindDataFile } from '../store';
 import { Modal, Button } from '../components';
@@ -144,8 +144,8 @@ export const HomePage: React.FC = () => {
         <div className="absolute inset-x-0 top-0 h-72 bg-[radial-gradient(circle_at_22%_20%,rgba(248,199,216,.34),transparent_48%)]" />
         <div className="relative max-w-4xl mx-auto px-8 pt-14 pb-10">
           <div className="flex items-center gap-3 mb-5">
-            <div className="w-10 h-10 rounded-[12px] bg-[#e85d91] flex items-center justify-center shadow-[0_2px_0_#bd3d70]">
-              <Sparkles size={18} className="text-white" />
+            <div className="w-10 h-10 rounded-[12px] bg-white flex items-center justify-center shadow-[0_2px_0_#e5d7dd] overflow-hidden">
+              <img src="/logo.png" alt="Grain" className="h-9 w-9 object-contain" />
             </div>
             <span className="text-sm font-medium text-pink-400 tracking-wide">GRAIN</span>
           </div>

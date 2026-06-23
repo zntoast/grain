@@ -1,5 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, X, ZoomIn } from 'lucide-react';
+import { saveImage, loadImage, deleteImage } from '../services/imageStorage';
 
 interface ImagePreviewProps {
   imageUrl?: string;
@@ -7,49 +8,74 @@ interface ImagePreviewProps {
 }
 
 export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl, onImageChange }) => {
-  const imageUrl = initialUrl || '';
+  const [displayUrl, setDisplayUrl] = useState('');
   const [showModal, setShowModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64 = event.target?.result as string;
-        onImageChange?.(base64);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    if (!initialUrl) { setDisplayUrl(''); return; }
+    if (initialUrl.startsWith('http') || initialUrl.startsWith('blob:')) {
+      setDisplayUrl(initialUrl);
+    } else if (initialUrl.startsWith('img_')) {
+      loadImage(initialUrl).then((url) => setDisplayUrl(url || ''));
     }
+  }, [initialUrl]);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 压缩大图
+    let blob: Blob = file;
+    if (file.size > 1024 * 1024) {
+      const img = await new Promise<HTMLImageElement>((resolve) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.src = URL.createObjectURL(file);
+      });
+      URL.revokeObjectURL(img.src);
+      const max = 400;
+      const scale = Math.min(max / img.width, max / img.height, 1);
+      const w = Math.round(img.width * scale);
+      const h = Math.round(img.height * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
+      blob = await new Promise((resolve) => canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.7));
+    }
+
+    const id = await saveImage(blob);
+    onImageChange?.(id);
   };
 
-  const handleRemove = () => {
-    onImageChange?.('');
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handleRemove = async () => {
+    if (initialUrl && initialUrl.startsWith('img_')) {
+      await deleteImage(initialUrl);
     }
+    onImageChange?.('');
+    setDisplayUrl('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   return (
     <>
       <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-pink-100">
-        {/* 16:9 比例容器 */}
-        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
-          {imageUrl ? (
+        <div className="relative w-full" style={{ minHeight: '160px' }}>
+          {displayUrl ? (
             <>
               <img
-                src={imageUrl}
+                src={displayUrl}
                 alt="预览"
-                className="absolute inset-0 w-full h-full object-cover cursor-pointer"
+                className="w-full h-full object-contain cursor-pointer max-h-48"
                 onClick={() => setShowModal(true)}
               />
-              <div 
+              <div
                 className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100"
                 onClick={() => setShowModal(true)}
               >
                 <ZoomIn size={20} className="text-white" />
               </div>
-              {/* 删除按钮 */}
               <button
                 onClick={handleRemove}
                 className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/80 hover:bg-white text-gray-600 hover:text-red-500 transition-colors backdrop-blur-sm"
@@ -62,11 +88,11 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
           ) : (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="absolute inset-0 flex flex-col items-center justify-center hover:bg-pink-50/50 transition-colors"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-1 hover:bg-pink-50/50 transition-colors rounded-xl"
               aria-label="上传预览图"
             >
-              <Upload size={20} className="text-pink-400 mb-1" />
-              <span className="text-xs text-gray-500">上传预览图</span>
+              <Upload size={20} className="text-pink-400" />
+              <span className="text-xs text-gray-500">上传图片</span>
             </button>
           )}
         </div>
@@ -80,22 +106,20 @@ export const ImagePreview: React.FC<ImagePreviewProps> = ({ imageUrl: initialUrl
         />
       </div>
 
-      {/* 放大预览弹窗 */}
-      {showModal && imageUrl && (
-        <div 
+      {showModal && displayUrl && (
+        <div
           className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-8"
           onClick={() => setShowModal(false)}
         >
-          <button 
+          <button
             className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
             onClick={() => setShowModal(false)}
             aria-label="关闭预览"
-            title="关闭预览"
           >
             <X size={20} />
           </button>
           <img
-            src={imageUrl}
+            src={displayUrl}
             alt="预览大图"
             className="max-w-full max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}

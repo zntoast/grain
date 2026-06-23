@@ -1,11 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { CursorEffects, SyncToast } from './components';
 import { HomePage, WorkspacePage, GroupPage, TagEditorPage, AllTagsPage } from './pages';
-import { useStore } from './store';
 
 function App() {
-  useStore();
-
   return (
     <BrowserRouter>
       <CursorEffects />

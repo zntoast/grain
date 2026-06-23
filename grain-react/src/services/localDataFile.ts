@@ -46,9 +46,36 @@ const JSON_FILE_TYPE: FilePickerAcceptType = {
   accept: { 'application/json': ['.json'] },
 };
 
-export const isFileSystemAccessSupported = () => {
+const isDevMode = () => {
+  if (typeof window === 'undefined') return false;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('dev-skip-security') === 'true';
+};
+
+export const getFileSystemAccessSupportStatus = () => {
   const browserWindow = window as FileSystemAccessWindow;
-  return Boolean(browserWindow.showOpenFilePicker && browserWindow.showSaveFilePicker);
+  
+  if (typeof window === 'undefined') {
+    return { supported: false, reason: '非浏览器环境' };
+  }
+  
+  if (!browserWindow.showOpenFilePicker || !browserWindow.showSaveFilePicker) {
+    return { supported: false, reason: '浏览器不支持 File System Access API' };
+  }
+  
+  if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+    if (isDevMode()) {
+      console.warn('[Dev Mode] 跳过安全协议检查，仅用于开发测试');
+    } else {
+      return { supported: false, reason: '需要 HTTPS 或 localhost 环境' };
+    }
+  }
+  
+  return { supported: true, reason: '' };
+};
+
+export const isFileSystemAccessSupported = () => {
+  return getFileSystemAccessSupportStatus().supported;
 };
 
 const openHandleDb = () =>

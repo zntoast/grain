@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Copy, ChevronDown } from 'lucide-react';
 import { useStore } from '../store';
-import { Modal, Button, SearchBox, TagChip, useToast, Toast } from '../components';
+import { Modal, Button, SearchBox, TagChip, ImagePreview, useToast, Toast } from '../components';
 import { CATEGORIES } from '../types';
 
 interface GroupTagEditModalProps {
@@ -12,7 +12,7 @@ interface GroupTagEditModalProps {
 
 export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, onClose, groupId }) => {
   const { toast, showToast, hideToast } = useToast();
-  const { groups, tags, groupTags, toggleTagInGroup, addTag, linkTagToGroup } = useStore();
+  const { groups, tags, groupTags, toggleTagInGroup, addTag, linkTagToGroup, updateGroup } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -20,9 +20,20 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
   const [newTagEn, setNewTagEn] = useState('');
   const [newTagZh, setNewTagZh] = useState('');
   const [newTagCategory, setNewTagCategory] = useState<string>(CATEGORIES[0]);
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [customInput, setCustomInput] = useState('');
 
   const group = groups.find((g) => g.id === groupId);
   const currentTagIds = groupId ? groupTags[groupId] || [] : [];
+  const currentTags = currentTagIds
+    .map((tagId) => tags.find((t) => t.id === tagId))
+    .filter(Boolean);
+
+  // 自定义提示词行
+  const customLines = customInput
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
 
   // 所有标签（带搜索和分类筛选）
   const availableTags = useMemo(() => {
@@ -65,11 +76,25 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
     showToast('已添加并关联');
   };
 
+  const handleCopyAll = () => {
+    const allPrompts = [...currentTags.map((t) => t!.en), ...customLines].join(', ');
+    navigator.clipboard.writeText(allPrompts);
+    showToast('已复制全部提示词');
+  };
+
+  const handleImageChange = (url: string) => {
+    if (groupId) {
+      updateGroup(groupId, { imageUrl: url });
+    }
+  };
+
   // 关闭时重置状态
   const handleClose = () => {
     setSearchQuery('');
     setSelectedCategory(null);
     setShowAddForm(false);
+    setShowCustomInput(false);
+    setCustomInput('');
     onClose();
   };
 
@@ -77,32 +102,81 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
 
   return (
     <>
-      <Modal isOpen={isOpen} onClose={handleClose} title="管理提示词" description={group.name} width="w-[640px]">
+      <Modal isOpen={isOpen} onClose={handleClose} title="管理提示词" description={group.name} width="w-[900px]">
         <div className="space-y-4">
-          {/* 已选提示词概览 */}
-          {currentTagIds.length > 0 && (
-            <div className="bg-gray-50 rounded-xl p-3">
-              <div className="text-xs text-gray-500 mb-2">
-                已选 <span className="font-medium text-gray-900">{currentTagIds.length}</span> 个提示词
+          {/* 图片预览 + 当前提示词 - 左右布局 */}
+          <div className="flex gap-4">
+            {/* 左侧 - 图片预览 */}
+            <div className="w-1/3 flex-shrink-0">
+              <h4 className="text-xs font-semibold text-gray-500 mb-2">效果预览</h4>
+              <ImagePreview
+                imageUrl={group.imageUrl || ''}
+                onImageChange={handleImageChange}
+              />
+            </div>
+
+            {/* 右侧 - 当前提示词 + 自定义提示词 */}
+            <div className="flex-1 min-w-0 space-y-3">
+              {/* 当前提示词 */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-xs font-semibold text-gray-500">
+                    当前提示词
+                    <span className="ml-1 font-normal text-gray-400">({currentTags.length} 个)</span>
+                  </h4>
+                  <Button variant="ghost" size="sm" onClick={handleCopyAll}>
+                    <Copy size={12} />
+                    复制
+                  </Button>
+                </div>
+                {currentTags.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {currentTags.map((tag) => (
+                      <TagChip
+                        key={tag!.id}
+                        en={tag!.en}
+                        zh={tag!.zh}
+                        size="sm"
+                        selected
+                        onRemove={() => handleToggleTag(tag!.id)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#fdfaf8] border border-dashed border-[#d9d0d3] rounded-xl p-4 text-center">
+                    <p className="text-xs text-gray-400">暂无提示词，从下方选择添加</p>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-wrap gap-1.5">
-                {currentTagIds.map((tagId) => {
-                  const tag = tags.find((t) => t.id === tagId);
-                  if (!tag) return null;
-                  return (
-                    <TagChip
-                      key={tagId}
-                      en={tag.en}
-                      zh={tag.zh}
-                      size="sm"
-                      selected
-                      onRemove={() => handleToggleTag(tagId)}
+
+              {/* 自定义提示词 */}
+              <div>
+                <button
+                  onClick={() => setShowCustomInput(!showCustomInput)}
+                  className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <ChevronDown
+                    size={12}
+                    className={`transition-transform ${showCustomInput ? '' : '-rotate-90'}`}
+                  />
+                  自定义提示词
+                  {customLines.length > 0 && (
+                    <span className="text-gray-400">({customLines.length} 行)</span>
+                  )}
+                </button>
+                {showCustomInput && (
+                  <div className="mt-2">
+                    <textarea
+                      value={customInput}
+                      onChange={(e) => setCustomInput(e.target.value)}
+                      placeholder="每行一个提示词，如：&#10;best quality&#10;masterpiece"
+                      className="w-full h-20 px-3 py-2 text-xs font-mono text-gray-700 bg-[#fdfaf8] border border-[#e8e2e3] rounded-xl resize-none focus:outline-none focus:border-accent"
                     />
-                  );
-                })}
+                  </div>
+                )}
               </div>
             </div>
-          )}
+          </div>
 
           {/* 搜索 + 新增按钮 */}
           <div className="flex items-center gap-3">
@@ -184,7 +258,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
           </div>
 
           {/* 标签选择区 */}
-          <div className="max-h-[360px] overflow-y-auto space-y-5">
+          <div className="max-h-[300px] overflow-y-auto space-y-5">
             {Object.keys(groupedTags).length > 0 ? (
               Object.entries(groupedTags).map(([category, categoryTags]) => (
                 <div key={category}>

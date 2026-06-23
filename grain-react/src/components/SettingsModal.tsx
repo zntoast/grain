@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, WandSparkles, MousePointer2, HardDrive, Download, Upload } from 'lucide-react';
+import { Sparkles, WandSparkles, MousePointer2, HardDrive, Download, Upload, FilePlus, Clock } from 'lucide-react';
 import { useStore, bindDataFile, unbindDataFile } from '../store';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import {
   getSavedDataFileHandle,
-  isFileSystemAccessSupported,
   createDataFile,
   downloadSnapshot,
   readSnapshotFromUpload,
@@ -45,17 +44,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
   });
   const [syncFileName, setSyncFileName] = useState<string | null>(null);
   const [syncMsg, setSyncMsg] = useState('');
-  const fsSupported = isFileSystemAccessSupported();
+  const [workModeLoading, setWorkModeLoading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!isOpen) return;
     const loadFileHandle = async () => {
+      // 只有在同步已开启的情况下才自动绑定文件
+      const isSyncEnabled = localStorage.getItem('grain_sync_enabled') === 'true';
+      if (!isSyncEnabled) {
+        setSyncFileName(null);
+        setSyncEnabled(false);
+        return;
+      }
       const h = await getSavedDataFileHandle();
       if (h) {
         setSyncFileName(h.name);
         setSyncEnabled(true);
-        localStorage.setItem('grain_sync_enabled', 'true');
+        // 自动绑定并启动同步
+        await bindDataFile(h);
       } else {
         setSyncFileName(null);
         setSyncEnabled(false);
@@ -64,28 +71,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
     };
     loadFileHandle();
   }, [isOpen]);
-
-  const handleToggleSync = async (on: boolean) => {
-    if (on) {
-      try {
-        const existing = await getSavedDataFileHandle();
-        const handle = existing || await createDataFile();
-        await bindDataFile(handle);
-        setSyncEnabled(true);
-        setSyncFileName(handle.name);
-        localStorage.setItem('grain_sync_enabled', 'true');
-        setSyncMsg('同步已开启');
-      } catch {
-        setSyncEnabled(false);
-        localStorage.setItem('grain_sync_enabled', 'false');
-      }
-    } else {
-      unbindDataFile();
-      setSyncEnabled(false);
-      setSyncFileName(null);
-      localStorage.setItem('grain_sync_enabled', 'false');
-    }
-  };
 
   const handleChangeFile = async () => {
     try {
@@ -148,60 +133,121 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
           )}
         </div>
 
-        {/* 本地文件同步 */}
+        {/* 工作方式 */}
         <div className="border-t border-gray-100 pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <HardDrive size={16} className="text-gray-400" />
-              <h4 className="text-sm font-semibold text-gray-900">本地文件同步</h4>
-            </div>
-            {fsSupported ? (
-              <button
-                onClick={() => handleToggleSync(!syncEnabled)}
-                className={`relative w-10 h-6 rounded-full transition-colors ${
-                  syncEnabled ? 'bg-accent' : 'bg-gray-300'
-                }`}
-              >
-                <span
-                  className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                    syncEnabled ? 'translate-x-4' : ''
-                  }`}
-                />
-              </button>
-            ) : (
-              <span className="text-xs text-gray-400">仅 Chrome/Edge</span>
-            )}
+          <div className="flex items-center gap-2 mb-3">
+            <HardDrive size={16} className="text-gray-400" />
+            <h4 className="text-sm font-semibold text-gray-900">工作方式</h4>
           </div>
-          <p className="text-xs text-gray-500 leading-relaxed">
-            {syncEnabled
-              ? `每 ${syncInterval} 秒自动同步到「${syncFileName || 'grain-data.json'}」`
-              : '开启后将数据自动保存到本地文件，换设备时可恢复'}
-          </p>
-
-          {syncEnabled && (
-            <div className="mt-3 flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs text-gray-500">间隔</label>
-                <input
-                  type="number"
-                  min={1}
-                  value={syncInterval}
-                  onChange={(e) => setSyncInterval(Number(e.target.value))}
-                  className="w-14 h-7 px-1.5 border border-gray-200 rounded-md text-xs text-center focus:border-accent focus:outline-none"
-                />
-                <span className="text-xs text-gray-400">秒</span>
+          
+          <div className="space-y-2">
+            {/* 文件同步模式 */}
+            <button
+              onClick={async () => {
+                if (syncEnabled) return;
+                setWorkModeLoading(true);
+                try {
+                  const existing = await getSavedDataFileHandle();
+                  const handle = existing || await createDataFile();
+                  await bindDataFile(handle);
+                  setSyncEnabled(true);
+                  setSyncFileName(handle.name);
+                  localStorage.setItem('grain_sync_enabled', 'true');
+                  setSyncMsg('已切换到文件同步模式');
+                } catch {
+                  // user cancelled
+                } finally {
+                  setWorkModeLoading(false);
+                }
+              }}
+              disabled={workModeLoading}
+              className={`w-full p-3 rounded-lg border transition-colors text-left flex items-center gap-3 ${
+                syncEnabled
+                  ? 'border-pink-200 bg-pink-50'
+                  : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                syncEnabled ? 'bg-pink-500 text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                <FilePlus size={14} />
               </div>
-              <button
-                onClick={handleChangeFile}
-                className="text-xs text-accent hover:underline"
-              >
-                更换文件
-              </button>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900">文件同步</div>
+                <div className="text-xs text-gray-500">
+                  {syncEnabled 
+                    ? `每 ${syncInterval} 秒自动保存到「${syncFileName || 'grain-data.json'}」`
+                    : '数据保存到本地文件，可跨设备'}
+                </div>
+              </div>
+              {syncEnabled && (
+                <span className="text-xs text-pink-500 font-medium">当前</span>
+              )}
+            </button>
+
+            {/* 临时使用模式 */}
+            <button
+              onClick={() => {
+                if (!syncEnabled) return;
+                if (confirm('关闭后数据将仅保存在浏览器中，确定切换到临时模式吗？')) {
+                  unbindDataFile();
+                  setSyncEnabled(false);
+                  setSyncFileName(null);
+                  localStorage.setItem('grain_sync_enabled', 'false');
+                  setSyncMsg('已切换到临时模式');
+                }
+              }}
+              className={`w-full p-3 rounded-lg border transition-colors text-left flex items-center gap-3 ${
+                !syncEnabled
+                  ? 'border-gray-200 bg-gray-50'
+                  : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                !syncEnabled ? 'bg-gray-500 text-white' : 'bg-gray-100 text-gray-500'
+              }`}>
+                <Clock size={14} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-gray-900">临时使用</div>
+                <div className="text-xs text-gray-500">数据存浏览器，更换设备会丢失。手动清除：DevTools → Application → Local Storage</div>
+              </div>
+              {!syncEnabled && (
+                <span className="text-xs text-gray-500 font-medium">当前</span>
+              )}
+            </button>
+          </div>
+
+          {/* 同步设置 */}
+          {syncEnabled && (
+            <div className="mt-3 pl-11 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-gray-500">间隔</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={syncInterval}
+                    onChange={(e) => setSyncInterval(Number(e.target.value))}
+                    className="w-14 h-7 px-1.5 border border-gray-200 rounded-md text-xs text-center focus:border-accent focus:outline-none"
+                  />
+                  <span className="text-xs text-gray-400">秒</span>
+                </div>
+                <button
+                  onClick={handleChangeFile}
+                  className="text-xs text-accent hover:underline"
+                >
+                  更换文件
+                </button>
+              </div>
+              <p className="text-xs text-gray-400">
+                更换文件后，数据将同步到新的本地文件。原文件不受影响。
+              </p>
             </div>
           )}
 
           {syncMsg && (
-            <p className="mt-2 text-xs text-accent">{syncMsg}</p>
+            <p className="mt-2 text-xs text-accent pl-11">{syncMsg}</p>
           )}
         </div>
 

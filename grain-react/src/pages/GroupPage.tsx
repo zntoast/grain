@@ -123,7 +123,16 @@ export const GroupPage: React.FC = () => {
   // 当前词组
   const group = groups.find((g) => g.id === groupId);
 
-  const previewImageUrl = group?.imageUrl || '';
+  // 图片 URL 状态
+  const [previewImageUrl, setPreviewImageUrl] = useState<string>(group?.imageUrl || '');
+
+  // 当词组 ID 变化时，重新初始化图片 URL 和自定义提示词
+  React.useEffect(() => {
+    if (group) {
+      setPreviewImageUrl(group.imageUrl || '');
+      setCustomTags(group.customTags || '');
+    }
+  }, [groupId, group]);
 
   // 当前词组的 Tag 列表
   const currentTagIds = groupId ? groupTags[groupId] || [] : [];
@@ -371,14 +380,25 @@ export const GroupPage: React.FC = () => {
               <div className="mt-3 space-y-2">
                 <textarea
                   value={customTags}
-                  onChange={(e) => setCustomTags(e.target.value)}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    setCustomTags(newValue);
+                    if (groupId) {
+                      updateGroup(groupId, { customTags: newValue });
+                    }
+                  }}
                   placeholder="输入自定义提示词，每行一个..."
                   rows={4}
                   className="form-control w-full px-3 py-2 text-sm font-mono resize-none"
                 />
                 {customTags && (
                   <button
-                    onClick={() => setCustomTags('')}
+                    onClick={() => {
+                      setCustomTags('');
+                      if (groupId) {
+                        updateGroup(groupId, { customTags: '' });
+                      }
+                    }}
                     className="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500"
                   >
                     <X size={12} />

@@ -15,6 +15,7 @@ export interface Group {
   color: string;
   tags?: string; // 用于显示的数量字符串
   imageUrl?: string; // 预览图片地址
+  customTags?: string; // 自定义提示词，每行一个
 }
 
 // Tag（提示词）
@@ -47,6 +48,9 @@ export interface Folder {
 // 词组-目录映射
 export type GroupFolderMap = Record<string, string>;
 
+// 工作空间-目录映射
+export type WorkspaceFolderMap = Record<string, string>;
+
 export type CursorMode = 'spark' | 'burst' | 'off';
 
 export interface GrainDataSnapshot {
@@ -74,7 +78,7 @@ export interface GrainDataSnapshot {
 // 分类列表
 export const CATEGORIES = [
   '角色', '画风', '构图', '光影', '画质', '场景', '色调', '表情', '姿势', '特效',
-  '头发', '五官', '身体', '服装', '袜子', '鞋', '装饰', '颜色', '表情符号', '嘴巴', '手脚', '眼睛', '环境'
+  '头发', '五官', '身体', '服装', '袜子', '鞋', '装饰', '颜色', '表情符号', '嘴巴', '手脚', '眼睛', '环境', 'R18'
 ] as const;
 export type Category = typeof CATEGORIES[number];
 
@@ -89,7 +93,7 @@ export interface StoreState {
   folders: Folder[];
   groupFolderMap: GroupFolderMap;
   workspaceFolders: Folder[];
-  workspaceFolderMap: Record<string, string>;
+  workspaceFolderMap: WorkspaceFolderMap;
   
   // 计数器
   tagIdCounter: number;
@@ -101,6 +105,9 @@ export interface StoreState {
   currentWorkspaceId: string | null;
   cursorMode: CursorMode;
   syncInterval: number;
+  
+  // 引导状态
+  hasCompletedOnboarding: boolean;
   
   // Actions
   // 工作空间
@@ -150,6 +157,9 @@ export interface StoreState {
   toggleSidebar: () => void;
   setCursorMode: (mode: CursorMode) => void;
   setSyncInterval: (seconds: number) => void;
+  
+  // 引导流程
+  setHasCompletedOnboarding: (completed: boolean) => void;
   
   // 数据持久化
   loadFromStorage: () => void;

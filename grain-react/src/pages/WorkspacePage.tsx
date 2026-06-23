@@ -76,44 +76,59 @@ export const WorkspacePage: React.FC = () => {
       .filter((item): item is { group: Group; type: 'positive' | 'negative' } => Boolean(item.group));
   }, [workspaceGroupEntries, viewType, groups]);
 
-  // 汇总所有提示词
+  // 汇总所有提示词（包括自定义提示词）
   const allTags = useMemo(() => {
-    const tagIds = new Set<string>();
+    const result: Array<{ en: string; zh: string; category: string }> = [];
     filteredGroups.forEach((item) => {
       if (item.group && !disabledGroupIds.has(item.group.id)) {
-        (groupTags[item.group.id] || []).forEach((tagId) => tagIds.add(tagId));
+        // 标准提示词
+        (groupTags[item.group.id] || []).forEach((tagId) => {
+          const tag = tags.find((t) => t.id === tagId);
+          if (tag) result.push(tag);
+        });
+        // 自定义提示词
+        const customLines = item.group.customTags?.split('\n').filter(line => line.trim()) || [];
+        customLines.forEach(line => {
+          result.push({ en: line, zh: '', category: '' });
+        });
       }
     });
-    return Array.from(tagIds)
-      .map((tagId) => tags.find((t) => t.id === tagId))
-      .filter(Boolean);
+    return result;
   }, [filteredGroups, groupTags, tags, disabledGroupIds]);
 
-  // 统计数据
+  // 统计数据（包括自定义提示词）
   const stats = useMemo(() => {
     const positiveEntries = workspaceGroupEntries.filter((e) => e.type === 'positive');
     const negativeEntries = workspaceGroupEntries.filter((e) => e.type === 'negative');
-    const allTagIds = new Set<string>();
+    let totalTagCount = 0;
     
     workspaceGroupEntries.forEach((e) => {
-      (groupTags[e.groupId] || []).forEach((tagId) => allTagIds.add(tagId));
+      // 标准提示词数量
+      totalTagCount += (groupTags[e.groupId] || []).length;
+      // 自定义提示词数量
+      const group = groups.find((g) => g.id === e.groupId);
+      const customCount = (group?.customTags?.split('\n').filter(line => line.trim()) || []).length;
+      totalTagCount += customCount;
     });
     
     return {
       groupCount: workspaceGroupEntries.length,
       positiveCount: positiveEntries.length,
       negativeCount: negativeEntries.length,
-      tagCount: allTagIds.size,
+      tagCount: totalTagCount,
       workspaceCount: workspaces.length,
     };
-  }, [workspaceGroupEntries, groupTags, workspaces]);
+  }, [workspaceGroupEntries, groupTags, workspaces, groups]);
 
-  // 获取词组的所有标签
-  const getGroupTags = (groupId: string) => {
+  // 获取词组的所有提示词（包括自定义提示词）
+  const getGroupAllTags = (groupId: string) => {
     const tagIds = groupTags[groupId] || [];
-    return tagIds
+    const standardTags = tagIds
       .map((tagId) => tags.find((t) => t.id === tagId))
       .filter(Boolean);
+    const group = groups.find((g) => g.id === groupId);
+    const customLines = group?.customTags?.split('\n').filter(line => line.trim()) || [];
+    return [...standardTags, ...customLines.map(line => ({ en: line, zh: '', category: '' } as any))];
   };
 
   // 获取词组的图片 URL
@@ -275,10 +290,10 @@ export const WorkspacePage: React.FC = () => {
             if (!ws) return null;
             const isActive = ws.id === workspaceId;
             return (
-              <button
+              <div
                 key={ws.id}
                 onClick={() => navigate(`/workspace/${ws.id}`)}
-                className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-t-md text-sm font-medium relative transition-colors ${
+                className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-t-md text-sm font-medium relative transition-colors cursor-pointer ${
                   isActive
                     ? 'text-[#b52f64] bg-[#fff0f5]'
                     : 'text-gray-500 hover:text-gray-700 hover:bg-[#f7f3f1]'
@@ -302,7 +317,6 @@ export const WorkspacePage: React.FC = () => {
                       const remaining = openWorkspaceIds.filter((oid) => oid !== ws.id);
                       setOpenWorkspaceIds(remaining);
                       if (isActive) {
-                        // 优先跳到右侧邻接标签，没有则左侧
                         const next = remaining[Math.min(idx, remaining.length - 1)];
                         navigate(`/workspace/${next}`);
                       }
@@ -313,7 +327,7 @@ export const WorkspacePage: React.FC = () => {
                     ×
                   </button>
                 )}
-              </button>
+              </div>
             );
           })}
           <button
@@ -484,14 +498,18 @@ export const WorkspacePage: React.FC = () => {
                     </span>
                   </h3>
                 </div>
-                <div className="surface-card overflow-hidden mb-4">
-                  <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
-                    <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
+                  <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+                    <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
+                      const standardCount = (groupTags[g.group!.id] || []).length;
+                      const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
+                      return acc + standardCount + customCount;
+                    }, 0)} 个词）</span>
                     <button
                       onClick={() => {
-                        const positiveTagIds = filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).flatMap(g => groupTags[g.group!.id] || []);
-                        const positiveTags = positiveTagIds.map(id => tags.find(t => t.id === id)!.en).join(', ');
-                        navigator.clipboard.writeText(positiveTags);
+                        const positiveGroups = filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id));
+                        const allTagsText = positiveGroups.flatMap(g => getGroupAllTags(g.group!.id).map(t => t!.en)).join(', ');
+                        navigator.clipboard.writeText(allTagsText);
                         showToast('已复制正向提示词');
                       }}
                       className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10"
@@ -502,7 +520,7 @@ export const WorkspacePage: React.FC = () => {
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
                     {filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).map((item) => {
                       const group = item.group!;
-                      const groupTagsList = getGroupTags(group.id);
+                      const groupTagsList = getGroupAllTags(group.id);
                       if (groupTagsList.length === 0) return null;
                       return (
                         <span key={group.id} className="inline">
@@ -518,7 +536,7 @@ export const WorkspacePage: React.FC = () => {
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'positive').length > 0 ? (
                     filteredGroups.filter(g => g.type === 'positive').map((item) => {
-                      const groupTagsList = getGroupTags(item.group!.id);
+                      const groupTagsList = getGroupAllTags(item.group!.id);
                       return (
                         <GroupCard
                           key={item.group!.id}
@@ -568,14 +586,18 @@ export const WorkspacePage: React.FC = () => {
                     </span>
                   </h3>
                 </div>
-                <div className="surface-card overflow-hidden mb-4">
-                  <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
-                    <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => acc + (groupTags[g.group!.id] || []).length, 0)} 个词）</span>
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
+                  <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
+                    <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
+                      const standardCount = (groupTags[g.group!.id] || []).length;
+                      const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
+                      return acc + standardCount + customCount;
+                    }, 0)} 个词）</span>
                     <button
                       onClick={() => {
-                        const negativeTagIds = filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).flatMap(g => groupTags[g.group!.id] || []);
-                        const negativeTags = negativeTagIds.map(id => tags.find(t => t.id === id)!.en).join(', ');
-                        navigator.clipboard.writeText(negativeTags);
+                        const negativeGroups = filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id));
+                        const allTagsText = negativeGroups.flatMap(g => getGroupAllTags(g.group!.id).map(t => t!.en)).join(', ');
+                        navigator.clipboard.writeText(allTagsText);
                         showToast('已复制负面提示词');
                       }}
                       className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10"
@@ -586,7 +608,7 @@ export const WorkspacePage: React.FC = () => {
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
                     {filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).map((item) => {
                       const group = item.group!;
-                      const groupTagsList = getGroupTags(group.id);
+                      const groupTagsList = getGroupAllTags(group.id);
                       if (groupTagsList.length === 0) return null;
                       return (
                         <span key={group.id} className="inline">
@@ -602,7 +624,7 @@ export const WorkspacePage: React.FC = () => {
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                   {filteredGroups.filter(g => g.type === 'negative').length > 0 ? (
                     filteredGroups.filter(g => g.type === 'negative').map((item) => {
-                      const groupTagsList = getGroupTags(item.group!.id);
+                      const groupTagsList = getGroupAllTags(item.group!.id);
                       return (
                         <GroupCard
                           key={item.group!.id}
@@ -679,7 +701,7 @@ export const WorkspacePage: React.FC = () => {
                 <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
                   {filteredGroups.filter(g => !disabledGroupIds.has(g.group!.id)).map((item) => {
                     const group = item.group!;
-                    const groupTagsList = getGroupTags(group.id);
+                    const groupTagsList = getGroupAllTags(group.id);
                     if (groupTagsList.length === 0) return null;
                     return (
                       <span key={group.id} className="inline">
@@ -696,7 +718,7 @@ export const WorkspacePage: React.FC = () => {
               <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
                 {filteredGroups.length > 0 ? (
                   filteredGroups.map((item) => {
-                    const groupTagsList = getGroupTags(item.group!.id);
+                    const groupTagsList = getGroupAllTags(item.group!.id);
                     return (
                       <GroupCard
                         key={item.group!.id}
@@ -854,7 +876,7 @@ export const WorkspacePage: React.FC = () => {
           {availableGroups.length > 0 ? (
             availableGroups.map((group) => {
               const isSelected = selectedGroups.includes(group.id);
-              const groupTagsList = getGroupTags(group.id);
+              const groupTagsList = getGroupAllTags(group.id);
               return (
                 <div
                   key={group.id}

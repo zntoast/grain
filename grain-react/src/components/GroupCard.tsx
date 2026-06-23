@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GripVertical } from 'lucide-react';
+import { loadImage } from '../services/imageStorage';
 
 interface GroupCardProps {
   group: { id: string; name: string; desc: string };
@@ -51,7 +52,32 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
   const isPositive = type === 'positive';
   const [showPreview, setShowPreview] = useState(false);
   const [previewPos, setPreviewPos] = useState({ x: 0, y: 0 });
+  const [previewDisplayUrl, setPreviewDisplayUrl] = useState('');
   const cardRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!previewImageUrl) {
+      setPreviewDisplayUrl('');
+      return;
+    }
+    if (previewImageUrl.startsWith('http') || previewImageUrl.startsWith('blob:')) {
+      setPreviewDisplayUrl(previewImageUrl);
+      return;
+    }
+    if (previewImageUrl.startsWith('img_')) {
+      loadImage(previewImageUrl).then((url) => {
+        if (!cancelled) setPreviewDisplayUrl(url || '');
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+    setPreviewDisplayUrl(previewImageUrl);
+    return () => {
+      cancelled = true;
+    };
+  }, [previewImageUrl]);
 
   const handleMouseEnter = () => {
     onMouseEnter(group.id);
@@ -118,14 +144,14 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
         </div>
 
         {/* 图片预览浮窗 */}
-        {showPreview && previewImageUrl && (
+        {showPreview && previewDisplayUrl && (
           <div
             className="fixed z-50 pointer-events-none"
             style={{ left: previewPos.x, top: previewPos.y }}
           >
             <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-1 w-48">
               <img
-                src={previewImageUrl}
+                src={previewDisplayUrl}
                 alt="预览"
                 className="w-full h-28 object-cover rounded-lg"
               />
@@ -201,14 +227,14 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
       </div>
 
       {/* 图片预览浮窗 */}
-      {showPreview && previewImageUrl && (
+      {showPreview && previewDisplayUrl && (
         <div
           className="fixed z-50 pointer-events-none"
           style={{ left: previewPos.x, top: previewPos.y }}
         >
           <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-1 w-48">
             <img
-              src={previewImageUrl}
+              src={previewDisplayUrl}
               alt="预览"
               className="w-full h-28 object-cover rounded-lg"
             />

@@ -22,7 +22,6 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
   const [newTagZh, setNewTagZh] = useState('');
   const [newTagCategory, setNewTagCategory] = useState<string>(CATEGORIES[0]);
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customInput, setCustomInput] = useState('');
   const visibleCategories = useMemo<string[]>(
     () => filterVisibleCategories(CATEGORIES, showR18Category),
     [showR18Category],
@@ -36,6 +35,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
     : fallbackCategory;
 
   const group = groups.find((g) => g.id === groupId);
+  const customInput = group?.customTags || '';
   const currentTagIds = groupId ? groupTags[groupId] || [] : [];
   const currentTags = currentTagIds
     .map((tagId) => tags.find((t) => t.id === tagId))
@@ -104,13 +104,18 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
     }
   };
 
+  const handleCustomInputChange = (newValue: string) => {
+    if (groupId) {
+      updateGroup(groupId, { customTags: newValue });
+    }
+  };
+
   // 关闭时重置状态
   const handleClose = () => {
     setSearchQuery('');
     setSelectedCategory(null);
     setShowAddForm(false);
     setShowCustomInput(false);
-    setCustomInput('');
     onClose();
   };
 
@@ -184,7 +189,7 @@ export const GroupTagEditModal: React.FC<GroupTagEditModalProps> = ({ isOpen, on
                   <div className="mt-2">
                     <textarea
                       value={customInput}
-                      onChange={(e) => setCustomInput(e.target.value)}
+                      onChange={(e) => handleCustomInputChange(e.target.value)}
                       placeholder="每行一个提示词，如：&#10;best quality&#10;masterpiece"
                       className="w-full h-20 px-3 py-2 text-xs font-mono text-gray-700 bg-[#fdfaf8] border border-[#e8e2e3] rounded-xl resize-none focus:outline-none focus:border-accent"
                     />

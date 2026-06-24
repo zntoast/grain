@@ -25,6 +25,13 @@ test('native deployment uses a fast-forward pull, lock, and health check', () =>
   assert.match(source, /curl --fail --silent --show-error/);
 });
 
+test('detached serve process does not inherit the deployment lock', () => {
+  const source = readFileSync(deployScriptPath, 'utf8');
+
+  assert.match(source, /LOCK_FILE="\$ROOT_DIR\/\.deploy-v2\.lock"/);
+  assert.match(source, /setsid serve .* 9>&-/);
+});
+
 test('native deployment loads an NVM-managed Node runtime for non-interactive SSH', () => {
   const source = readFileSync(deployScriptPath, 'utf8');
   const nvmLoad = source.indexOf('$HOME/.nvm/nvm.sh');

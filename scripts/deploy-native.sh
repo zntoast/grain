@@ -6,7 +6,7 @@ ROOT_DIR="${ROOT_DIR:-$(cd -- "$SCRIPT_DIR/.." && pwd)}"
 APP_DIR="$ROOT_DIR/grain-react"
 PORT="${NATIVE_PORT:-8080}"
 LOG_FILE="$ROOT_DIR/.serve.log"
-LOCK_FILE="$ROOT_DIR/.deploy.lock"
+LOCK_FILE="$ROOT_DIR/.deploy-v2.lock"
 
 if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
   export NVM_DIR="$HOME/.nvm"
@@ -46,7 +46,7 @@ stop_service() {
 
 stop_service
 cd "$ROOT_DIR"
-setsid serve -l "$PORT" -s grain-react/dist </dev/null >"$LOG_FILE" 2>&1 &
+setsid serve -l "$PORT" -s grain-react/dist </dev/null >"$LOG_FILE" 2>&1 9>&- &
 
 for _ in {1..15}; do
   if curl --fail --silent --show-error "http://127.0.0.1:$PORT/" >/dev/null; then

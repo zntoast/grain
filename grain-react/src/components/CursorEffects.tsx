@@ -1,17 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { useStore } from '../store';
-
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  hue: number;
-  life: number;
-  maxLife: number;
-  kind: 'trail' | 'click';
-}
+import { advanceParticle } from '../utils/cursorPhysics';
+import type { CursorParticle } from '../utils/cursorPhysics';
 
 const supportsCursorEffects = () => {
   if (typeof window === 'undefined') return false;
@@ -23,7 +13,7 @@ const supportsCursorEffects = () => {
 export const CursorEffects: React.FC = () => {
   const mode = useStore((s) => s.cursorMode);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
+  const particlesRef = useRef<CursorParticle[]>([]);
   const mouseRef = useRef({ x: -100, y: -100 });
   const trailTimerRef = useRef(0);
   const rafRef = useRef<number>(0);
@@ -52,10 +42,7 @@ export const CursorEffects: React.FC = () => {
         p.life++;
         if (p.life > p.maxLife) { particles.splice(i, 1); continue; }
 
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.12;
-        p.vx *= 0.96;
+        advanceParticle(p);
 
         const progress = p.life / p.maxLife;
         const alpha = 1 - progress;
@@ -112,8 +99,8 @@ export const CursorEffects: React.FC = () => {
         const hue = mode === 'burst' ? 280 + Math.random() * 60 : 190 + Math.random() * 70;
         particlesRef.current.push({
           x: e.clientX, y: e.clientY,
-          vx: -3 + Math.random() * 6,
-          vy: 6 + Math.random() * 8,
+          vx: -1.5 + Math.random() * 3,
+          vy: -1.5 + Math.random() * 3,
           size: 2 + Math.random() * 3,
           hue,
           life: 0, maxLife: 30,

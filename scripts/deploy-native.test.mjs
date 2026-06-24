@@ -25,6 +25,15 @@ test('native deployment uses a fast-forward pull, lock, and health check', () =>
   assert.match(source, /curl --fail --silent --show-error/);
 });
 
+test('native deployment loads an NVM-managed Node runtime for non-interactive SSH', () => {
+  const source = readFileSync(deployScriptPath, 'utf8');
+  const nvmLoad = source.indexOf('$HOME/.nvm/nvm.sh');
+  const commandCheck = source.indexOf('for command_name in git npm');
+
+  assert.notEqual(nvmLoad, -1);
+  assert.ok(nvmLoad < commandCheck);
+});
+
 test('make rs and automation share the same native deployment script', () => {
   const source = readFileSync(makefilePath, 'utf8');
 

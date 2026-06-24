@@ -8,6 +8,12 @@ PORT="${NATIVE_PORT:-8080}"
 LOG_FILE="$ROOT_DIR/.serve.log"
 LOCK_FILE="$ROOT_DIR/.deploy.lock"
 
+if [[ -s "$HOME/.nvm/nvm.sh" ]]; then
+  export NVM_DIR="$HOME/.nvm"
+  # Non-interactive SSH sessions do not load the user's NVM setup.
+  source "$HOME/.nvm/nvm.sh"
+fi
+
 for command_name in git npm serve lsof curl flock setsid; do
   command -v "$command_name" >/dev/null 2>&1 || {
     echo "Missing required command: $command_name"

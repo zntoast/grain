@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+
+const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const deployScriptPath = join(root, 'scripts', 'deploy-native.sh');
+const workflowPath = join(root, '.github', 'workflows', 'deploy.yml');
+const makefilePath = join(root, 'Makefile');
+
+test('native deployment builds before stopping the current service', () => {
+  assert.equal(existsSync(deployScriptPath), true, 'deploy script is missing');
+  const source = readFileSync(deployScriptPath, 'utf8');
+
+  assert.ok(source.indexOf('npm run build') < source.indexOf('stop_service'));
+});
+
+test('native deployment uses a fast-forward pull, lock, and health check', () => {
+  assert.equal(existsSync(deployScriptPath), true, 'deploy script is missing');
+  const source = readFileSync(deployScriptPath, 'utf8');
+
+  assert.match(source, /flock -n/);
+  assert.match(source, /git pull --ff-only origin main/);
+  assert.match(source, /curl --fail --silent --show-error/);
+});
+
+test('make rs and automation share the same native deployment script', () => {
+  const source = readFileSync(makefilePath, 'utf8');
+
+  assert.match(source, /deploy-native:\s*\n\t@bash scripts\/deploy-native\.sh/);
+  assert.match(source, /rs: deploy-native/);
+});
+
+test('workflow verifies main before deploying to the physical server', () => {
+  assert.equal(existsSync(workflowPath), true, 'workflow is missing');
+  const source = readFileSync(workflowPath, 'utf8');
+
+  assert.match(source, /branches:\s*\[main\]/);
+  assert.match(source, /needs:\s*verify/);
+  assert.match(source, /git pull --ff-only origin main && make deploy-native SKIP_GIT_PULL=1/);
+  assert.doesNotMatch(source, /docker/i);
+});

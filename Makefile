@@ -1,4 +1,4 @@
-.PHONY: build run stop restart clean shell logs rebuild dev install i r rs s
+.PHONY: build run stop restart clean shell logs rebuild dev install i r rs s deploy-native
 
 IMAGE_NAME ?= grain
 CONTAINER_NAME ?= grain-app
@@ -72,14 +72,11 @@ s:
 	@-kill $$(lsof -ti:$(NATIVE_PORT)) 2>/dev/null || true
 	@echo "✓ Stopped"
 
-# 重启：拉取最新代码 + 重新构建 + 后台启动
-rs: s
-	@git pull
-	@cd grain-react && npm install --registry=https://registry.npmmirror.com --silent
-	@cd grain-react && npm run build
-	@setsid serve -l $(NATIVE_PORT) -s grain-react/dist > $(LOG_FILE) 2>&1 &
-	@sleep 1
-	@echo "✓ http://localhost:$(NATIVE_PORT)"
+# 自动部署：拉取最新代码 + 重新构建 + 健康检查
+deploy-native:
+	@bash scripts/deploy-native.sh
+
+rs: deploy-native
 
 # 重启（不拉取代码，仅重新构建）
 r: s i

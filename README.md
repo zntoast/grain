@@ -43,6 +43,34 @@ npm run dev
 
 浏览器打开 `http://localhost:5173`。
 
+## GitHub Actions 自动部署
+
+推送代码到 `main` 分支后，GitHub Actions 会先运行测试和生产构建，全部通过后通过 SSH 登录物理服务器，并在 `/root/workspace/grain` 执行原生部署。该流程不使用 Docker。
+
+服务器需要提前安装 Git、Node.js 22、npm、`serve`、`lsof`、`curl`、`flock` 和 `setsid`，并确保服务器自身能够拉取 GitHub 仓库。
+
+在 GitHub 仓库的 Actions Secrets 中配置：
+
+| Secret | 说明 |
+| --- | --- |
+| `DEPLOY_HOST` | 服务器 IP 或域名 |
+| `DEPLOY_PORT` | SSH 端口 |
+| `DEPLOY_USER` | SSH 用户 |
+| `DEPLOY_SSH_KEY` | 对应服务器公钥的 SSH 私钥 |
+| `DEPLOY_KNOWN_HOSTS` | 已确认的服务器 SSH 主机指纹 |
+
+主机指纹可在可信环境中生成后填入 `DEPLOY_KNOWN_HOSTS`：
+
+```bash
+ssh-keyscan -p <SSH端口> <服务器地址>
+```
+
+也可以在服务器项目目录手动运行同一套部署逻辑：
+
+```bash
+make rs
+```
+
 ## 数据管理
 
 数据默认保存在浏览器 localStorage 中。如需持久化到本地文件：

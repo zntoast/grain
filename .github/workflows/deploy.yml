@@ -59,9 +59,11 @@ jobs:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
         run: |
+          printf -v DEPLOY_COMMAND 'cd -- %q && git pull --ff-only origin main && make deploy-native SKIP_GIT_PULL=1' "$DEPLOY_PATH"
           ssh -i ~/.ssh/deploy_key \
             -p "$DEPLOY_PORT" \
             -o BatchMode=yes \
             "$DEPLOY_USER@$DEPLOY_HOST" \
-            'cd /root/workspace/grain && git pull --ff-only origin main && make deploy-native SKIP_GIT_PULL=1'
+            "$DEPLOY_COMMAND"

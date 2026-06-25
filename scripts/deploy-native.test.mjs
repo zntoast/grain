@@ -54,6 +54,8 @@ test('workflow verifies main before deploying to the physical server', () => {
 
   assert.match(source, /branches:\s*\[main\]/);
   assert.match(source, /needs:\s*verify/);
-  assert.match(source, /git pull --ff-only origin main && make deploy-native SKIP_GIT_PULL=1/);
+  assert.match(source, /DEPLOY_PATH: \$\{\{ secrets\.DEPLOY_PATH \}\}/);
+  assert.match(source, /printf -v DEPLOY_COMMAND 'cd -- %q/);
+  assert.doesNotMatch(source, /\/root\/workspace/);
   assert.doesNotMatch(source, /docker/i);
 });

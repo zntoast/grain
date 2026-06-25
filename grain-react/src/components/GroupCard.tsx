@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Star } from 'lucide-react';
 import { loadImage } from '../services/imageStorage';
 
 interface GroupCardProps {
@@ -11,6 +11,8 @@ interface GroupCardProps {
   previewImageUrl?: string;
   disabled?: boolean;
   onToggle?: () => void;
+  favorite?: boolean;
+  onToggleFavorite?: () => void;
   isDragging: boolean;
   isDropOver: boolean;
   layoutMode: 'grid' | 'row';
@@ -34,6 +36,8 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
   previewImageUrl,
   disabled,
   onToggle,
+  favorite,
+  onToggleFavorite,
   isDragging,
   isDropOver,
   layoutMode,
@@ -118,6 +122,16 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
           </span>
           <button onClick={() => navigate(`/group/${group.id}`)} className="text-sm font-medium text-gray-900 hover:text-accent truncate text-left">{group.name}</button>
           <span className="text-xs text-gray-400 ml-auto tabular-nums flex-shrink-0">{tagCount} 词</span>
+          {onToggleFavorite && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+              className={`icon-control !w-7 !h-7 ${favorite ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
+              title={favorite ? '取消收藏' : '收藏词组'}
+              aria-label={favorite ? '取消收藏' : '收藏词组'}
+            >
+              <Star size={14} fill={favorite ? 'currentColor' : 'none'} />
+            </button>
+          )}
           {onToggle && (
             <button
               onClick={(e) => { e.stopPropagation(); onToggle(); }}
@@ -192,6 +206,16 @@ export const GroupCard: React.FC<GroupCardProps> = React.memo(({
             <button onClick={() => navigate(`/group/${group.id}`)} className="text-sm font-semibold tracking-tight truncate hover:text-accent">{group.name}</button>
           </div>
           <div className="flex items-center gap-1.5">
+            {onToggleFavorite && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
+                className={`icon-control !w-7 !h-7 ${favorite ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
+                title={favorite ? '取消收藏' : '收藏词组'}
+                aria-label={favorite ? '取消收藏' : '收藏词组'}
+              >
+                <Star size={14} fill={favorite ? 'currentColor' : 'none'} />
+              </button>
+            )}
             {onToggle && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggle(); }}

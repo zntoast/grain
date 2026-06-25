@@ -8,6 +8,7 @@ import {
   ChevronDown,
   X,
   ArrowLeft,
+  Star,
 } from 'lucide-react';
 import {
   DndContext,
@@ -102,6 +103,7 @@ export const GroupPage: React.FC = () => {
     reorderTagsInGroup,
     deleteGroup,
     updateGroup,
+    toggleGroupFavorite,
     showR18Category,
   } = useStore();
 
@@ -281,6 +283,14 @@ export const GroupPage: React.FC = () => {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => toggleGroupFavorite(group.id)}
+              >
+                <Star size={12} fill={group.favorite ? 'currentColor' : 'none'} />
+                {group.favorite ? '已收藏' : '收藏'}
+              </Button>
               <Button size="sm" onClick={handleCopyAll}>
                 <Copy size={12} />
                 复制全部

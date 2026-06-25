@@ -1,5 +1,15 @@
 import { create } from 'zustand';
-import type { StoreState, Workspace, Group, Tag, Folder, GrainDataSnapshot, CursorMode } from './types';
+import type {
+  StoreState,
+  Workspace,
+  Group,
+  Tag,
+  Folder,
+  GrainDataSnapshot,
+  CursorMode,
+  WorkspacePromptConfig,
+} from './types';
+import { mergeTagReferences, trimHistory } from './utils/promptFeatures';
 import {
   DEFAULT_WORKSPACES,
   DEFAULT_GROUPS,
@@ -28,10 +38,22 @@ const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9
 // 深拷贝
 const deepClone = <T>(obj: T): T => JSON.parse(JSON.stringify(obj));
 
-const mergeById = <T extends { id: string }>(current: T[] | undefined, defaults: T[]): T[] => {
+const EMPTY_PROMPT_CONFIG: WorkspacePromptConfig = {
+  disabledGroupIds: [],
+  promptOrder: [],
+  disabledPromptKeys: [],
+  weights: {},
+};
+
+const mergeById = <T extends { id: string }>(
+  current: T[] | undefined,
+  defaults: T[],
+  deletedIds: string[] = [],
+): T[] => {
   const currentItems = current?.length ? current : [];
   const currentIds = new Set(currentItems.map((item) => item.id));
-  const missingDefaults = defaults.filter((item) => !currentIds.has(item.id));
+  const deleted = new Set(deletedIds);
+  const missingDefaults = defaults.filter((item) => !currentIds.has(item.id) && !deleted.has(item.id));
   return [...currentItems, ...deepClone(missingDefaults)];
 };
 
@@ -52,7 +74,7 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
   savedAt: data.savedAt || new Date().toISOString(),
   workspaces: data.workspaces?.length ? data.workspaces : deepClone(DEFAULT_WORKSPACES),
   groups: data.groups?.length ? data.groups : deepClone(DEFAULT_GROUPS),
-  tags: mergeById<Tag>(data.tags, DEFAULT_TAGS),
+  tags: mergeById<Tag>(data.tags, DEFAULT_TAGS, data.deletedTagIds),
   workspaceGroups:
     data.workspaceGroups && Object.keys(data.workspaceGroups).length > 0
       ? data.workspaceGroups
@@ -70,6 +92,7 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
     ? data.workspaceFolderMap
     : deepClone(DEFAULT_WORKSPACE_FOLDER_MAP),
   tagIdCounter: data.tagIdCounter || 100,
+  deletedTagIds: data.deletedTagIds || [],
   folderIdCounter: data.folderIdCounter || 10,
   workspaceFolderIdCounter: data.workspaceFolderIdCounter || 10,
   sidebarCollapsed: data.sidebarCollapsed || false,
@@ -77,6 +100,9 @@ const normalizeSnapshot = (data: Partial<GrainDataSnapshot>): GrainDataSnapshot 
   cursorMode: (data.cursorMode as CursorMode) || 'off',
   syncInterval: data.syncInterval || 30,
   showR18Category: data.showR18Category || false,
+  workspacePromptConfigs: data.workspacePromptConfigs || {},
+  workspacePresets: data.workspacePresets || [],
+  workspaceHistory: data.workspaceHistory || [],
 });
 
 export const useStore = create<StoreState>((set, get) => ({
@@ -90,7 +116,11 @@ export const useStore = create<StoreState>((set, get) => ({
   groupFolderMap: deepClone(DEFAULT_GROUP_FOLDER_MAP),
   workspaceFolders: deepClone(DEFAULT_WORKSPACE_FOLDERS),
   workspaceFolderMap: deepClone(DEFAULT_WORKSPACE_FOLDER_MAP),
+  workspacePromptConfigs: {},
+  workspacePresets: [],
+  workspaceHistory: [],
   tagIdCounter: 100,
+  deletedTagIds: [],
   folderIdCounter: 10,
   workspaceFolderIdCounter: 10,
   sidebarCollapsed: false,
@@ -132,6 +162,8 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => {
       const newWorkspaceGroups = { ...state.workspaceGroups };
       delete newWorkspaceGroups[id];
+      const newPromptConfigs = { ...state.workspacePromptConfigs };
+      delete newPromptConfigs[id];
       const newCurrentId =
         state.currentWorkspaceId === id
           ? state.workspaces.find((ws) => ws.id !== id)?.id || null
@@ -139,6 +171,9 @@ export const useStore = create<StoreState>((set, get) => ({
       return {
         workspaces: state.workspaces.filter((ws) => ws.id !== id),
         workspaceGroups: newWorkspaceGroups,
+        workspacePromptConfigs: newPromptConfigs,
+        workspacePresets: state.workspacePresets.filter((preset) => preset.workspaceId !== id),
+        workspaceHistory: state.workspaceHistory.filter((entry) => entry.workspaceId !== id),
         currentWorkspaceId: newCurrentId,
       };
     });
@@ -192,8 +227,31 @@ export const useStore = create<StoreState>((set, get) => ({
         groupTags: newGroupTags,
         groupFolderMap: newGroupFolderMap,
         workspaceGroups: newWorkspaceGroups,
+        workspacePromptConfigs: Object.fromEntries(
+          Object.entries(state.workspacePromptConfigs).map(([workspaceId, config]) => [
+            workspaceId,
+            {
+              ...config,
+              disabledGroupIds: config.disabledGroupIds.filter((groupId) => groupId !== id),
+              promptOrder: config.promptOrder.filter((key) => !key.startsWith(`${id}:`)),
+              disabledPromptKeys: config.disabledPromptKeys.filter((key) => !key.startsWith(`${id}:`)),
+              weights: Object.fromEntries(
+                Object.entries(config.weights).filter(([key]) => !key.startsWith(`${id}:`)),
+              ),
+            },
+          ]),
+        ),
       };
     });
+    get().saveToStorage();
+  },
+
+  toggleGroupFavorite: (id) => {
+    set((state) => ({
+      groups: state.groups.map((group) =>
+        group.id === id ? { ...group, favorite: !group.favorite } : group
+      ),
+    }));
     get().saveToStorage();
   },
 
@@ -295,6 +353,9 @@ export const useStore = create<StoreState>((set, get) => ({
       });
       return {
         tags: state.tags.filter((t) => t.id !== id),
+        deletedTagIds: state.deletedTagIds.includes(id)
+          ? state.deletedTagIds
+          : [...state.deletedTagIds, id],
         groupTags: newGroupTags,
       };
     });
@@ -313,6 +374,22 @@ export const useStore = create<StoreState>((set, get) => ({
     }));
     get().saveToStorage();
     return newTags;
+  },
+
+  mergeTags: (keepId, removeIds) => {
+    const removed = new Set(removeIds.filter((id) => id !== keepId));
+    if (removed.size === 0) return;
+    set((state) => ({
+      tags: state.tags.filter((tag) => !removed.has(tag.id)),
+      deletedTagIds: [...new Set([...state.deletedTagIds, ...removed])],
+      groupTags: Object.fromEntries(
+        Object.entries(state.groupTags).map(([groupId, tagIds]) => [
+          groupId,
+          mergeTagReferences(tagIds, keepId, [...removed]),
+        ]),
+      ),
+    }));
+    get().saveToStorage();
   },
 
   // 工作空间-词组关联
@@ -373,6 +450,78 @@ export const useStore = create<StoreState>((set, get) => ({
         },
       };
     });
+    get().saveToStorage();
+  },
+
+  setWorkspacePromptConfig: (workspaceId, config) => {
+    set((state) => ({
+      workspacePromptConfigs: {
+        ...state.workspacePromptConfigs,
+        [workspaceId]: deepClone(config),
+      },
+    }));
+    get().saveToStorage();
+  },
+
+  addWorkspacePreset: (presetData) => {
+    const preset = {
+      ...presetData,
+      id: `preset_${generateId()}`,
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({ workspacePresets: [preset, ...state.workspacePresets] }));
+    get().saveToStorage();
+    return preset;
+  },
+
+  deleteWorkspacePreset: (id) => {
+    set((state) => ({
+      workspacePresets: state.workspacePresets.filter((preset) => preset.id !== id),
+    }));
+    get().saveToStorage();
+  },
+
+  applyWorkspacePreset: (id) => {
+    const preset = get().workspacePresets.find((item) => item.id === id);
+    if (!preset) return;
+    set((state) => ({
+      workspaceGroups: {
+        ...state.workspaceGroups,
+        [preset.workspaceId]: deepClone(preset.workspaceGroups),
+      },
+      workspacePromptConfigs: {
+        ...state.workspacePromptConfigs,
+        [preset.workspaceId]: deepClone(preset.config),
+      },
+    }));
+    get().saveToStorage();
+  },
+
+  addWorkspaceHistory: (entryData) => {
+    const entry = {
+      ...entryData,
+      id: `history_${generateId()}`,
+      createdAt: new Date().toISOString(),
+    };
+    set((state) => ({
+      workspaceHistory: trimHistory([entry, ...state.workspaceHistory]),
+    }));
+    get().saveToStorage();
+  },
+
+  restoreWorkspaceHistory: (id) => {
+    const entry = get().workspaceHistory.find((item) => item.id === id);
+    if (!entry) return;
+    set((state) => ({
+      workspaceGroups: {
+        ...state.workspaceGroups,
+        [entry.workspaceId]: deepClone(entry.workspaceGroups),
+      },
+      workspacePromptConfigs: {
+        ...state.workspacePromptConfigs,
+        [entry.workspaceId]: deepClone(entry.config || EMPTY_PROMPT_CONFIG),
+      },
+    }));
     get().saveToStorage();
   },
 
@@ -549,6 +698,7 @@ export const useStore = create<StoreState>((set, get) => ({
       workspaceFolders: state.workspaceFolders,
       workspaceFolderMap: state.workspaceFolderMap,
       tagIdCounter: state.tagIdCounter,
+      deletedTagIds: state.deletedTagIds,
       folderIdCounter: state.folderIdCounter,
       workspaceFolderIdCounter: state.workspaceFolderIdCounter,
       sidebarCollapsed: state.sidebarCollapsed,
@@ -556,6 +706,9 @@ export const useStore = create<StoreState>((set, get) => ({
       cursorMode: state.cursorMode,
       syncInterval: state.syncInterval,
       showR18Category: state.showR18Category,
+      workspacePromptConfigs: state.workspacePromptConfigs,
+      workspacePresets: state.workspacePresets,
+      workspaceHistory: state.workspaceHistory,
       customCategories,
     };
   },

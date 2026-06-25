@@ -1,11 +1,21 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { LayoutGrid, List, Plus } from 'lucide-react';
+import { LayoutGrid, List, Plus, SlidersHorizontal, Star } from 'lucide-react';
 import { useStore } from '../store';
-import { Layout, Button, Modal, GroupTagEditModal, useToast, Toast, GroupCard } from '../components';
+import {
+  Layout,
+  Button,
+  Modal,
+  GroupTagEditModal,
+  useToast,
+  Toast,
+  GroupCard,
+  WorkspaceComposerModal,
+} from '../components';
 import { COLOR_OPTIONS } from '../constants';
 import type { Group } from '../types';
 import { filterVisibleTags } from '../utils/categoryVisibility';
+import { buildWorkspacePromptItems, createPromptOutput } from '../utils/promptFeatures';
 
 export const WorkspacePage: React.FC = () => {
   const { workspaceId } = useParams<{ workspaceId: string }>();
@@ -25,6 +35,10 @@ export const WorkspacePage: React.FC = () => {
     unlinkGroupFromWorkspace,
     setGroupType,
     updateWorkspaceGroupOrder,
+    toggleGroupFavorite,
+    workspacePromptConfigs,
+    setWorkspacePromptConfig,
+    addWorkspaceHistory,
     showR18Category,
   } = useStore();
 
@@ -39,7 +53,8 @@ export const WorkspacePage: React.FC = () => {
   const [newWorkspaceDesc, setNewWorkspaceDesc] = useState('');
   const [newWorkspaceColor, setNewWorkspaceColor] = useState(COLOR_OPTIONS[0]);
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
-  const [hoveredGroupId, setHoveredGroupId] = useState<string | null>(null);
+  const [favoriteOnly, setFavoriteOnly] = useState(false);
+  const [showComposerModal, setShowComposerModal] = useState(false);
   const [draggedGroupId, setDraggedGroupId] = useState<string | null>(null);
   const [dropOverGroupId, setDropOverGroupId] = useState<string | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null);
@@ -49,7 +64,6 @@ export const WorkspacePage: React.FC = () => {
     workspaceId ? [workspaceId] : []
   );
   const prevWorkspaceIdRef = useRef(workspaceId);
-  const [disabledGroupIds, setDisabledGroupIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (workspaceId && workspaceId !== prevWorkspaceIdRef.current && !openWorkspaceIds.includes(workspaceId)) {
@@ -66,6 +80,45 @@ export const WorkspacePage: React.FC = () => {
     workspaceId ? workspaceGroups[workspaceId] || [] : [],
     [workspaceId, workspaceGroups]
   );
+  const promptConfig = workspaceId
+    ? workspacePromptConfigs[workspaceId] || {
+        disabledGroupIds: [],
+        promptOrder: [],
+        disabledPromptKeys: [],
+        weights: {},
+      }
+    : { disabledGroupIds: [], promptOrder: [], disabledPromptKeys: [], weights: {} };
+  const disabledGroupIds = useMemo(
+    () => new Set(promptConfig.disabledGroupIds),
+    [promptConfig.disabledGroupIds],
+  );
+  const workspacePromptItems = useMemo(
+    () => buildWorkspacePromptItems({
+      entries: workspaceGroupEntries,
+      groups,
+      groupTags,
+      tags: filterVisibleTags(tags, showR18Category),
+      promptOrder: promptConfig.promptOrder,
+    }),
+    [
+      workspaceGroupEntries,
+      groups,
+      groupTags,
+      tags,
+      showR18Category,
+      promptConfig.promptOrder,
+    ],
+  );
+  const promptOutput = useMemo(
+    () => createPromptOutput(workspacePromptItems, promptConfig),
+    [workspacePromptItems, promptConfig],
+  );
+  const enabledPromptItems = useMemo(() => {
+    const disabledPrompts = new Set(promptConfig.disabledPromptKeys);
+    return workspacePromptItems.filter(
+      (item) => !disabledGroupIds.has(item.groupId) && !disabledPrompts.has(item.key),
+    );
+  }, [workspacePromptItems, promptConfig.disabledPromptKeys, disabledGroupIds]);
 
   // 按类型筛选词组
   const filteredGroups = useMemo(() => {
@@ -77,26 +130,6 @@ export const WorkspacePage: React.FC = () => {
       .map((e) => ({ group: groups.find((g) => g.id === e.groupId), type: e.type }))
       .filter((item): item is { group: Group; type: 'positive' | 'negative' } => Boolean(item.group));
   }, [workspaceGroupEntries, viewType, groups]);
-
-  // 汇总所有提示词（包括自定义提示词）
-  const allTags = useMemo(() => {
-    const result: Array<{ en: string; zh: string; category: string }> = [];
-    filteredGroups.forEach((item) => {
-      if (item.group && !disabledGroupIds.has(item.group.id)) {
-        // 标准提示词
-        (groupTags[item.group.id] || []).forEach((tagId) => {
-          const tag = tags.find((t) => t.id === tagId);
-          if (tag && filterVisibleTags([tag], showR18Category).length > 0) result.push(tag);
-        });
-        // 自定义提示词
-        const customLines = item.group.customTags?.split('\n').filter(line => line.trim()) || [];
-        customLines.forEach(line => {
-          result.push({ en: line, zh: '', category: '' });
-        });
-      }
-    });
-    return result;
-  }, [filteredGroups, groupTags, tags, disabledGroupIds, showR18Category]);
 
   // 统计数据（包括自定义提示词）
   const stats = useMemo(() => {
@@ -146,9 +179,31 @@ export const WorkspacePage: React.FC = () => {
 
   // 复制全部提示词
   const handleCopyAll = () => {
-    const text = allTags.map((t) => t!.en).join(', ');
+    if (!workspaceId) return;
+    const text = viewType === 'negative' ? promptOutput.negativeText : promptOutput.positiveText;
     navigator.clipboard.writeText(text);
+    addWorkspaceHistory({
+      workspaceId,
+      positiveText: promptOutput.positiveText,
+      negativeText: promptOutput.negativeText,
+      workspaceGroups: workspaceGroupEntries,
+      config: promptConfig,
+    });
     showToast('已复制全部提示词');
+  };
+
+  const copyPromptType = (type: 'positive' | 'negative') => {
+    if (!workspaceId) return;
+    const text = type === 'positive' ? promptOutput.positiveText : promptOutput.negativeText;
+    navigator.clipboard.writeText(text);
+    addWorkspaceHistory({
+      workspaceId,
+      positiveText: promptOutput.positiveText,
+      negativeText: promptOutput.negativeText,
+      workspaceGroups: workspaceGroupEntries,
+      config: promptConfig,
+    });
+    showToast(type === 'positive' ? '已复制正向提示词' : '已复制负面提示词');
   };
 
   // 创建工作空间
@@ -217,11 +272,13 @@ export const WorkspacePage: React.FC = () => {
   };
 
   const handleToggleGroup = (groupId: string) => {
-    setDisabledGroupIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(groupId)) next.delete(groupId);
-      else next.add(groupId);
-      return next;
+    if (!workspaceId) return;
+    const next = new Set(promptConfig.disabledGroupIds);
+    if (next.has(groupId)) next.delete(groupId);
+    else next.add(groupId);
+    setWorkspacePromptConfig(workspaceId, {
+      ...promptConfig,
+      disabledGroupIds: [...next],
     });
   };
 
@@ -266,8 +323,11 @@ export const WorkspacePage: React.FC = () => {
   // 可关联的词组（未关联的）
   const availableGroups = useMemo(() => {
     const linkedIds = new Set(workspaceGroupEntries.map((e) => e.groupId));
-    return groups.filter((g) => !linkedIds.has(g.id));
-  }, [groups, workspaceGroupEntries]);
+    return groups
+      .filter((g) => !linkedIds.has(g.id))
+      .filter((g) => !favoriteOnly || g.favorite)
+      .sort((a, b) => Number(Boolean(b.favorite)) - Number(Boolean(a.favorite)));
+  }, [groups, workspaceGroupEntries, favoriteOnly]);
 
   // 稳定的回调函数
   const handleEditGroup = useCallback((groupId: string) => {
@@ -394,6 +454,10 @@ export const WorkspacePage: React.FC = () => {
               )}
             </div>
             <div className="flex gap-2">
+              <Button variant="secondary" onClick={() => setShowComposerModal(true)}>
+                <SlidersHorizontal size={14} />
+                提示词编排
+              </Button>
               <Button variant="secondary" onClick={() => setShowLinkModal(true)}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
@@ -507,42 +571,16 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
-                    <span>正向提示词汇总（{filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
-                      const standardCount = filterVisibleTags(
-                        (groupTags[g.group!.id] || [])
-                          .map((tagId) => tags.find((t) => t.id === tagId))
-                          .filter(Boolean),
-                        showR18Category,
-                      ).length;
-                      const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
-                      return acc + standardCount + customCount;
-                    }, 0)} 个词）</span>
+                    <span>正向提示词汇总（{enabledPromptItems.filter((item) => item.type === 'positive').length} 个词）</span>
                     <button
-                      onClick={() => {
-                        const positiveGroups = filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id));
-                        const allTagsText = positiveGroups.flatMap(g => getGroupAllTags(g.group!.id).map(t => t!.en)).join(', ');
-                        navigator.clipboard.writeText(allTagsText);
-                        showToast('已复制正向提示词');
-                      }}
+                      onClick={() => copyPromptType('positive')}
                       className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10"
                     >
                       复制全部
                     </button>
                   </div>
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                    {filteredGroups.filter(g => g.type === 'positive' && !disabledGroupIds.has(g.group!.id)).map((item) => {
-                      const group = item.group!;
-                      const groupTagsList = getGroupAllTags(group.id);
-                      if (groupTagsList.length === 0) return null;
-                      return (
-                        <span key={group.id} className="inline">
-                          <span className="text-gray-300 mx-0.5">, </span>
-                          <span className={`transition-colors ${hoveredGroupId === group.id ? 'bg-yellow-100 px-1 rounded' : ''}`}>
-                            {groupTagsList.map((t) => t!.en).join(', ')}
-                          </span>
-                        </span>
-                      );
-                    })}
+                    {promptOutput.positiveText || '暂无正向提示词'}
                   </div>
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
@@ -565,13 +603,15 @@ export const WorkspacePage: React.FC = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
-                          onMouseEnter={setHoveredGroupId}
-                          onMouseLeave={() => setHoveredGroupId(null)}
+                          onMouseEnter={() => undefined}
+                          onMouseLeave={() => undefined}
                           onEdit={handleEditGroup}
                           onChangeType={handleChangeGroupType}
                           onUnlink={handleUnlinkGroup}
                           disabled={disabledGroupIds.has(item.group!.id)}
                           onToggle={() => handleToggleGroup(item.group!.id)}
+                          favorite={item.group!.favorite}
+                          onToggleFavorite={() => toggleGroupFavorite(item.group!.id)}
                         />
                       );
                     })
@@ -600,42 +640,16 @@ export const WorkspacePage: React.FC = () => {
                 </div>
                 <div className="bg-white border border-gray-200 rounded-xl overflow-hidden mb-4">
                   <div className="flex justify-between items-center px-3 py-2 bg-gray-50 border-b border-gray-200 text-xs text-gray-500">
-                    <span>负面提示词汇总（{filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).reduce((acc, g) => {
-                      const standardCount = filterVisibleTags(
-                        (groupTags[g.group!.id] || [])
-                          .map((tagId) => tags.find((t) => t.id === tagId))
-                          .filter(Boolean),
-                        showR18Category,
-                      ).length;
-                      const customCount = (g.group!.customTags?.split('\n').filter(line => line.trim()) || []).length;
-                      return acc + standardCount + customCount;
-                    }, 0)} 个词）</span>
+                    <span>负面提示词汇总（{enabledPromptItems.filter((item) => item.type === 'negative').length} 个词）</span>
                     <button
-                      onClick={() => {
-                        const negativeGroups = filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id));
-                        const allTagsText = negativeGroups.flatMap(g => getGroupAllTags(g.group!.id).map(t => t!.en)).join(', ');
-                        navigator.clipboard.writeText(allTagsText);
-                        showToast('已复制负面提示词');
-                      }}
+                      onClick={() => copyPromptType('negative')}
                       className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10"
                     >
                       复制全部
                     </button>
                   </div>
                   <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                    {filteredGroups.filter(g => g.type === 'negative' && !disabledGroupIds.has(g.group!.id)).map((item) => {
-                      const group = item.group!;
-                      const groupTagsList = getGroupAllTags(group.id);
-                      if (groupTagsList.length === 0) return null;
-                      return (
-                        <span key={group.id} className="inline">
-                          <span className="text-gray-300 mx-0.5">, </span>
-                          <span className={`transition-colors ${hoveredGroupId === group.id ? 'bg-yellow-100 px-1 rounded' : ''}`}>
-                            {groupTagsList.map((t) => t!.en).join(', ')}
-                          </span>
-                        </span>
-                      );
-                    })}
+                    {promptOutput.negativeText || '暂无负向提示词'}
                   </div>
                 </div>
                 <div className={layoutMode === 'grid' ? 'grid grid-cols-3 gap-3' : 'flex flex-col gap-1.5'}>
@@ -658,13 +672,15 @@ export const WorkspacePage: React.FC = () => {
                           onDragOver={handleDragOver}
                           onDragLeave={handleDragLeave}
                           onDrop={handleDrop}
-                          onMouseEnter={setHoveredGroupId}
-                          onMouseLeave={() => setHoveredGroupId(null)}
+                          onMouseEnter={() => undefined}
+                          onMouseLeave={() => undefined}
                           onEdit={handleEditGroup}
                           onChangeType={handleChangeGroupType}
                           onUnlink={handleUnlinkGroup}
                           disabled={disabledGroupIds.has(item.group!.id)}
                           onToggle={() => handleToggleGroup(item.group!.id)}
+                          favorite={item.group!.favorite}
+                          onToggleFavorite={() => toggleGroupFavorite(item.group!.id)}
                         />
                       );
                     })
@@ -710,25 +726,17 @@ export const WorkspacePage: React.FC = () => {
 
               <div className="surface-card overflow-hidden mb-4">
                 <div className="flex justify-between items-center px-3 py-2 bg-[#f7f3f1] border-b border-[#e8e2e3] text-xs text-gray-500">
-                  <span>{viewType === 'positive' ? '正向' : '负面'}提示词汇总（{allTags.length} 个词）</span>
+                  <span>
+                    {viewType === 'positive' ? '正向' : '负面'}提示词汇总（
+                    {enabledPromptItems.filter((item) => item.type === viewType).length} 个词）
+                  </span>
                   <button onClick={handleCopyAll} className="bg-none border-none text-accent cursor-pointer text-xs px-1.5 py-0.5 rounded hover:bg-accent/10">
                     复制全部
                   </button>
                 </div>
                 <div className="p-2.5 font-mono text-xs leading-relaxed text-gray-900 min-h-12 max-h-48 overflow-y-auto">
-                  {filteredGroups.filter(g => !disabledGroupIds.has(g.group!.id)).map((item) => {
-                    const group = item.group!;
-                    const groupTagsList = getGroupAllTags(group.id);
-                    if (groupTagsList.length === 0) return null;
-                    return (
-                      <span key={group.id} className="inline">
-                        <span className="text-gray-300 mx-0.5">, </span>
-                        <span className={`transition-colors ${hoveredGroupId === group.id ? 'bg-yellow-100 px-1 rounded' : ''}`}>
-                          {groupTagsList.map((t) => t!.en).join(', ')}
-                        </span>
-                      </span>
-                    );
-                  })}
+                  {(viewType === 'negative' ? promptOutput.negativeText : promptOutput.positiveText)
+                    || `暂无${viewType === 'negative' ? '负向' : '正向'}提示词`}
                 </div>
               </div>
 
@@ -752,13 +760,15 @@ export const WorkspacePage: React.FC = () => {
                         onDragOver={handleDragOver}
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
-                        onMouseEnter={setHoveredGroupId}
-                        onMouseLeave={() => setHoveredGroupId(null)}
+                        onMouseEnter={() => undefined}
+                        onMouseLeave={() => undefined}
                         onEdit={handleEditGroup}
                         onChangeType={handleChangeGroupType}
                         onUnlink={handleUnlinkGroup}
                         disabled={disabledGroupIds.has(item.group!.id)}
                         onToggle={() => handleToggleGroup(item.group!.id)}
+                        favorite={item.group!.favorite}
+                        onToggleFavorite={() => toggleGroupFavorite(item.group!.id)}
                       />
                     );
                   })
@@ -889,6 +899,20 @@ export const WorkspacePage: React.FC = () => {
         title="关联词组到当前工作空间"
         description="选择要关联的词组，并指定属于正向词组还是负面词组。支持多选。"
       >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-xs text-gray-500">收藏词组会优先显示</span>
+          <button
+            onClick={() => setFavoriteOnly((value) => !value)}
+            className={`h-8 px-3 rounded-md border text-xs inline-flex items-center gap-1.5 ${
+              favoriteOnly
+                ? 'border-amber-300 bg-amber-50 text-amber-700'
+                : 'border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <Star size={13} fill={favoriteOnly ? 'currentColor' : 'none'} />
+            仅看收藏
+          </button>
+        </div>
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {availableGroups.length > 0 ? (
             availableGroups.map((group) => {
@@ -922,7 +946,10 @@ export const WorkspacePage: React.FC = () => {
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">{group.name}</div>
+                    <div className="text-sm font-medium text-gray-900 flex items-center gap-1.5">
+                      {group.name}
+                      {group.favorite && <Star size={12} className="text-amber-500" fill="currentColor" />}
+                    </div>
                     <div className="text-xs text-gray-500">
                       {groupTagsList.length} 个提示词 · {isSelected ? '已关联此工作空间' : '未关联'}
                     </div>
@@ -973,6 +1000,12 @@ export const WorkspacePage: React.FC = () => {
         isOpen={editingGroupId !== null}
         onClose={() => setEditingGroupId(null)}
         groupId={editingGroupId}
+      />
+      <WorkspaceComposerModal
+        isOpen={showComposerModal}
+        onClose={() => setShowComposerModal(false)}
+        workspaceId={workspace.id}
+        onMessage={showToast}
       />
       <Toast {...toast} onClose={hideToast} />
     </Layout>

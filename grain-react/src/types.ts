@@ -16,6 +16,7 @@ export interface Group {
   tags?: string; // 用于显示的数量字符串
   imageUrl?: string; // 预览图片地址
   customTags?: string; // 自定义提示词，每行一个
+  favorite?: boolean;
 }
 
 // Tag（提示词）
@@ -53,6 +54,41 @@ export type WorkspaceFolderMap = Record<string, string>;
 
 export type CursorMode = 'spark' | 'burst' | 'off';
 
+export interface WorkspacePromptConfig {
+  disabledGroupIds: string[];
+  promptOrder: string[];
+  disabledPromptKeys: string[];
+  weights: Record<string, number>;
+}
+
+export interface WorkspacePromptItem {
+  key: string;
+  groupId: string;
+  groupName: string;
+  type: 'positive' | 'negative';
+  prompt: string;
+  zh: string;
+}
+
+export interface WorkspacePreset {
+  id: string;
+  workspaceId: string;
+  name: string;
+  createdAt: string;
+  workspaceGroups: WorkspaceGroupEntry[];
+  config: WorkspacePromptConfig;
+}
+
+export interface WorkspaceHistoryEntry {
+  id: string;
+  workspaceId: string;
+  createdAt: string;
+  positiveText: string;
+  negativeText: string;
+  workspaceGroups: WorkspaceGroupEntry[];
+  config: WorkspacePromptConfig;
+}
+
 export interface GrainDataSnapshot {
   version: 1;
   savedAt: string;
@@ -66,6 +102,7 @@ export interface GrainDataSnapshot {
   workspaceFolders: Folder[];
   workspaceFolderMap: Record<string, string>;
   tagIdCounter: number;
+  deletedTagIds?: string[];
   folderIdCounter: number;
   workspaceFolderIdCounter: number;
   sidebarCollapsed: boolean;
@@ -73,6 +110,9 @@ export interface GrainDataSnapshot {
   cursorMode: CursorMode;
   syncInterval: number;
   showR18Category: boolean;
+  workspacePromptConfigs?: Record<string, WorkspacePromptConfig>;
+  workspacePresets?: WorkspacePreset[];
+  workspaceHistory?: WorkspaceHistoryEntry[];
   customCategories?: string[];
 }
 
@@ -95,9 +135,13 @@ export interface StoreState {
   groupFolderMap: GroupFolderMap;
   workspaceFolders: Folder[];
   workspaceFolderMap: WorkspaceFolderMap;
+  workspacePromptConfigs: Record<string, WorkspacePromptConfig>;
+  workspacePresets: WorkspacePreset[];
+  workspaceHistory: WorkspaceHistoryEntry[];
   
   // 计数器
   tagIdCounter: number;
+  deletedTagIds: string[];
   folderIdCounter: number;
   workspaceFolderIdCounter: number;
   
@@ -122,18 +166,26 @@ export interface StoreState {
   addGroup: (group: Omit<Group, 'id' | 'color'>, folderId?: string) => Group;
   updateGroup: (id: string, data: Partial<Group>) => void;
   deleteGroup: (id: string) => void;
+  toggleGroupFavorite: (id: string) => void;
   
   // Tag
   addTag: (tag: Omit<Tag, 'id'>) => Tag;
   updateTag: (id: string, data: Partial<Tag>) => void;
   deleteTag: (id: string) => void;
   addTags: (tags: Array<Omit<Tag, 'id'>>) => Tag[];
+  mergeTags: (keepId: string, removeIds: string[]) => void;
   
   // 工作空间-词组关联
   linkGroupToWorkspace: (workspaceId: string, groupId: string, type: 'positive' | 'negative') => void;
   unlinkGroupFromWorkspace: (workspaceId: string, groupId: string) => void;
   setGroupType: (workspaceId: string, groupId: string, type: 'positive' | 'negative') => void;
   updateWorkspaceGroupOrder: (workspaceId: string, draggedGroupId: string, targetIndex: number) => void;
+  setWorkspacePromptConfig: (workspaceId: string, config: WorkspacePromptConfig) => void;
+  addWorkspacePreset: (preset: Omit<WorkspacePreset, 'id' | 'createdAt'>) => WorkspacePreset;
+  deleteWorkspacePreset: (id: string) => void;
+  applyWorkspacePreset: (id: string) => void;
+  addWorkspaceHistory: (entry: Omit<WorkspaceHistoryEntry, 'id' | 'createdAt'>) => void;
+  restoreWorkspaceHistory: (id: string) => void;
   
   // 词组-Tag关联
   linkTagToGroup: (groupId: string, tagId: string) => void;

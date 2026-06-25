@@ -8,6 +8,7 @@ export { Toast } from './Toast';
 export { useToast } from './useToast';
 export { TagEditorModal } from './TagEditorModal';
 export { CursorEffects } from './CursorEffects';
+export { WorkspaceComposerModal } from './WorkspaceComposerModal';
 export { SyncToast } from './SyncToast';
 export { SettingsModal } from './SettingsModal';
 export { GroupTagEditModal } from './GroupTagEditModal';

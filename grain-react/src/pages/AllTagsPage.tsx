@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Trash2, Tag as TagIcon, X } from 'lucide-react';
+import { GitMerge, Plus, Trash2, Tag as TagIcon, X } from 'lucide-react';
 import { useStore } from '../store';
 import { Layout, Button, SearchBox, TagChip, Modal, useToast, Toast, TagEditorModal } from '../components';
 import { CATEGORIES } from '../types';
 import { filterVisibleCategories, filterVisibleTags } from '../utils/categoryVisibility';
+import { findDuplicateTagGroups, normalizePromptText } from '../utils/promptFeatures';
 
 // 自定义分类列表
 const CUSTOM_CATEGORIES_KEY = 'grain_custom_categories';
@@ -22,7 +23,7 @@ const saveCustomCategories = (categories: string[]) => {
 export const AllTagsPage: React.FC = () => {
   const { toast, showToast, hideToast } = useToast();
 
-  const { tags, groups, groupTags, addTags, deleteTag, updateTag, showR18Category } = useStore();
+  const { tags, groups, groupTags, addTags, deleteTag, updateTag, mergeTags, showR18Category } = useStore();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -37,6 +38,8 @@ export const AllTagsPage: React.FC = () => {
   const [newTagsInput, setNewTagsInput] = useState('');
   const [newTagsList, setNewTagsList] = useState<Array<{ en: string; zh: string; category: string }>>([]);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDuplicatesModal, setShowDuplicatesModal] = useState(false);
+  const [duplicateKeepIds, setDuplicateKeepIds] = useState<Record<string, string>>({});
   const [editingTagId, setEditingTagId] = useState<string | null>(null);
   const [customCategories, setCustomCategories] = useState<string[]>(getCustomCategories());
 
@@ -46,6 +49,7 @@ export const AllTagsPage: React.FC = () => {
   }, [customCategories, showR18Category]);
 
   const visibleTags = useMemo(() => filterVisibleTags(tags, showR18Category), [tags, showR18Category]);
+  const duplicateGroups = useMemo(() => findDuplicateTagGroups(visibleTags), [visibleTags]);
   const effectiveSelectedCategory = selectedCategory && allCategories.includes(selectedCategory)
     ? selectedCategory
     : null;
@@ -111,6 +115,13 @@ export const AllTagsPage: React.FC = () => {
     setSelectedTags([]);
     setShowDeletePanel(false);
     showToast(`已删除 ${selectedTags.length} 个提示词`);
+  };
+
+  const handleMergeDuplicateGroup = (duplicateGroup: typeof duplicateGroups[number]) => {
+    const key = normalizePromptText(duplicateGroup[0].en);
+    const keepId = duplicateKeepIds[key] || duplicateGroup[0].id;
+    mergeTags(keepId, duplicateGroup.filter((tag) => tag.id !== keepId).map((tag) => tag.id));
+    showToast(`已合并「${duplicateGroup[0].en}」的重复项`);
   };
 
   // 解析新 Tags 输入
@@ -227,6 +238,10 @@ export const AllTagsPage: React.FC = () => {
                 }}
               >
                 {batchMode ? '退出批量' : '批量操作'}
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowDuplicatesModal(true)}>
+                <GitMerge size={12} />
+                重复项 {duplicateGroups.length > 0 && `(${duplicateGroups.length})`}
               </Button>
               <Button size="sm" onClick={() => setShowAddModal(true)}>
                 <Plus size={12} />
@@ -415,6 +430,57 @@ export const AllTagsPage: React.FC = () => {
               确认删除
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showDuplicatesModal}
+        onClose={() => setShowDuplicatesModal(false)}
+        title="重复提示词"
+        description="英文提示词会忽略大小写、空格、下划线和连字符进行比较。"
+        width="w-[680px]"
+      >
+        <div className="space-y-3">
+          {duplicateGroups.length > 0 ? duplicateGroups.map((duplicateGroup) => {
+            const key = normalizePromptText(duplicateGroup[0].en);
+            const keepId = duplicateKeepIds[key] || duplicateGroup[0].id;
+            const affectedGroups = groups.filter((group) =>
+              duplicateGroup.some((tag) => (groupTags[group.id] || []).includes(tag.id))
+            );
+            return (
+              <div key={key} className="border border-gray-200 rounded-lg p-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-gray-900 mb-2">
+                      {duplicateGroup.length} 个重复项
+                    </div>
+                    <div className="space-y-1.5">
+                      {duplicateGroup.map((tag) => (
+                        <label key={tag.id} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="radio"
+                            name={`duplicate-${key}`}
+                            checked={keepId === tag.id}
+                            onChange={() => setDuplicateKeepIds((current) => ({ ...current, [key]: tag.id }))}
+                          />
+                          <span className="font-mono font-semibold">{tag.en}</span>
+                          <span className="text-gray-400">{tag.zh} · {tag.category}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-500">
+                      影响词组：{affectedGroups.length > 0 ? affectedGroups.map((group) => group.name).join('、') : '无'}
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={() => handleMergeDuplicateGroup(duplicateGroup)}>
+                    合并
+                  </Button>
+                </div>
+              </div>
+            );
+          }) : (
+            <div className="py-10 text-center text-sm text-gray-400">未发现重复提示词</div>
+          )}
         </div>
       </Modal>
 
